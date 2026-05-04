@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Color Workshop</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { overflow: hidden; background: #000; font-family: 'Segoe UI', system-ui, sans-serif; }
+      #canvas-container { position: fixed; inset: 0; }
+
+      #ui {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      #title {
+        position: absolute;
+        top: 28px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: rgba(255,255,255,0.9);
+        font-size: 1.5rem;
+        font-weight: 300;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        text-shadow: 0 0 30px rgba(255,255,255,0.4);
+        white-space: nowrap;
+      }
+
+      #subtitle {
+        position: absolute;
+        top: 62px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: rgba(255,255,255,0.45);
+        font-size: 0.75rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      #color-panel {
+        position: absolute;
+        bottom: 32px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        pointer-events: all;
+      }
+
+      #mix-preview {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: rgba(0,0,0,0.45);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 20px;
+        padding: 16px 24px;
+      }
+
+      .color-slot {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .color-swatch {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.25);
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.3s;
+        position: relative;
+      }
+      .color-swatch:hover { transform: scale(1.12); }
+      .color-swatch.active {
+        border-color: rgba(255,255,255,0.8);
+      }
+      .color-label {
+        font-size: 0.6rem;
+        color: rgba(255,255,255,0.5);
+        letter-spacing: 0.1em;
+        text-align: center;
+      }
+
+      .plus-sign {
+        color: rgba(255,255,255,0.4);
+        font-size: 1.4rem;
+        font-weight: 100;
+        margin: 0 4px;
+        padding-bottom: 18px;
+      }
+
+      .arrow-sign {
+        color: rgba(255,255,255,0.4);
+        font-size: 1.2rem;
+        margin: 0 4px;
+        padding-bottom: 18px;
+      }
+
+      #result-swatch {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.3);
+        transition: background 0.8s ease, box-shadow 0.8s ease;
+      }
+
+      #controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .btn {
+        padding: 10px 22px;
+        border-radius: 50px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.08);
+        color: rgba(255,255,255,0.85);
+        font-size: 0.78rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.2s;
+        backdrop-filter: blur(8px);
+      }
+      .btn:hover {
+        background: rgba(255,255,255,0.18);
+        border-color: rgba(255,255,255,0.45);
+      }
+      .btn.primary {
+        background: rgba(255,255,255,0.15);
+        border-color: rgba(255,255,255,0.4);
+      }
+
+      #hex-display {
+        font-size: 0.7rem;
+        color: rgba(255,255,255,0.4);
+        letter-spacing: 0.15em;
+        font-family: monospace;
+        text-align: center;
+      }
+
+      #slot-indicator {
+        position: absolute;
+        top: 28px;
+        right: 28px;
+        display: flex;
+        gap: 8px;
+        pointer-events: all;
+      }
+
+      .slot-btn {
+        padding: 8px 16px;
+        border-radius: 50px;
+        border: 1px solid rgba(255,255,255,0.15);
+        background: rgba(0,0,0,0.3);
+        color: rgba(255,255,255,0.5);
+        font-size: 0.7rem;
+        letter-spacing: 0.1em;
+        cursor: pointer;
+        transition: all 0.2s;
+        backdrop-filter: blur(8px);
+      }
+      .slot-btn.active {
+        border-color: rgba(255,255,255,0.5);
+        color: rgba(255,255,255,0.9);
+        background: rgba(255,255,255,0.1);
+      }
+
+      #color-name {
+        position: absolute;
+        top: 50%;
+        left: 28px;
+        transform: translateY(-50%);
+        color: rgba(255,255,255,0.6);
+        font-size: 0.9rem;
+        font-weight: 300;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        pointer-events: none;
+        transition: opacity 0.4s;
+      }
+
+      #hint {
+        position: absolute;
+        top: 50%;
+        right: 28px;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        pointer-events: none;
+      }
+
+      .hint-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: rgba(255,255,255,0.35);
+        font-size: 0.68rem;
+        letter-spacing: 0.08em;
+      }
+      .hint-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvas-container"></div>
+    <div id="ui">
+      <div id="title">Color Workshop</div>
+      <div id="subtitle">Click the wheel · Mix colors · Feel the space</div>
+
+      <div id="color-name">—</div>
+
+      <div id="slot-indicator">
+        <button class="slot-btn active" data-slot="0">Color A</button>
+        <button class="slot-btn" data-slot="1">Color B</button>
+      </div>
+
+      <div id="color-panel">
+        <div id="mix-preview">
+          <div class="color-slot">
+            <div class="color-swatch active" id="swatch-a" style="background:#ff0000;"></div>
+            <div class="color-label">A</div>
+          </div>
+          <span class="plus-sign">+</span>
+          <div class="color-slot">
+            <div class="color-swatch" id="swatch-b" style="background:#0000ff;"></div>
+            <div class="color-label">B</div>
+          </div>
+          <span class="arrow-sign">→</span>
+          <div class="color-slot">
+            <div id="result-swatch" style="background:#7f007f;"></div>
+            <div id="hex-display">#7f007f</div>
+          </div>
+        </div>
+        <div id="controls">
+          <button class="btn" id="btn-reset">Reset</button>
+          <button class="btn primary" id="btn-mix">Apply Mix</button>
+          <button class="btn" id="btn-randomize">Random</button>
+        </div>
+      </div>
+
+      <div id="hint">
+        <div class="hint-item">
+          <div class="hint-icon">🖱</div>
+          <span>Drag to rotate</span>
+        </div>
+        <div class="hint-item">
+          <div class="hint-icon">⚙</div>
+          <span>Scroll to zoom</span>
+        </div>
+        <div class="hint-item">
+          <div class="hint-icon">🎨</div>
+          <span>Click wheel to pick</span>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
