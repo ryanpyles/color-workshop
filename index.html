@@ -5,172 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>3D Color Workshop</title>
     <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
+      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
       body { overflow: hidden; background: #000; font-family: 'Segoe UI', system-ui, sans-serif; }
       #canvas-container { position: fixed; inset: 0; }
 
+      /* ── Global UI layer ───────────────────────────────────────────── */
       #ui {
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
+        position: fixed; inset: 0;
         pointer-events: none;
         z-index: 10;
       }
 
+      /* ── Title ─────────────────────────────────────────────────────── */
       #title {
-        position: absolute;
-        top: 28px;
-        left: 50%;
-        transform: translateX(-50%);
+        position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
         color: rgba(255,255,255,0.9);
-        font-size: 1.5rem;
-        font-weight: 300;
-        letter-spacing: 0.3em;
+        font-size: 1.4rem; font-weight: 300; letter-spacing: 0.3em;
         text-transform: uppercase;
-        text-shadow: 0 0 30px rgba(255,255,255,0.4);
+        text-shadow: 0 0 30px rgba(255,255,255,0.3);
         white-space: nowrap;
       }
-
       #subtitle {
-        position: absolute;
-        top: 62px;
-        left: 50%;
-        transform: translateX(-50%);
-        color: rgba(255,255,255,0.45);
-        font-size: 0.75rem;
-        letter-spacing: 0.2em;
-        text-transform: uppercase;
-        white-space: nowrap;
+        position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+        color: rgba(255,255,255,0.38); font-size: 0.7rem;
+        letter-spacing: 0.2em; text-transform: uppercase; white-space: nowrap;
       }
 
-      #color-panel {
-        position: absolute;
-        bottom: 32px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 16px;
-        pointer-events: all;
-      }
-
-      #mix-preview {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        background: rgba(0,0,0,0.45);
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 20px;
-        padding: 16px 24px;
-      }
-
-      .color-slot {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .color-swatch {
-        width: 52px;
-        height: 52px;
-        border-radius: 50%;
-        border: 2px solid rgba(255,255,255,0.25);
-        cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.3s;
-        position: relative;
-      }
-      .color-swatch:hover { transform: scale(1.12); }
-      .color-swatch.active {
-        border-color: rgba(255,255,255,0.8);
-      }
-      .color-label {
-        font-size: 0.6rem;
-        color: rgba(255,255,255,0.5);
-        letter-spacing: 0.1em;
-        text-align: center;
-      }
-
-      .plus-sign {
-        color: rgba(255,255,255,0.4);
-        font-size: 1.4rem;
-        font-weight: 100;
-        margin: 0 4px;
-        padding-bottom: 18px;
-      }
-
-      .arrow-sign {
-        color: rgba(255,255,255,0.4);
-        font-size: 1.2rem;
-        margin: 0 4px;
-        padding-bottom: 18px;
-      }
-
-      #result-swatch {
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        border: 2px solid rgba(255,255,255,0.3);
-        transition: background 0.8s ease, box-shadow 0.8s ease;
-      }
-
-      #controls {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-      }
-
-      .btn {
-        padding: 10px 22px;
-        border-radius: 50px;
-        border: 1px solid rgba(255,255,255,0.2);
-        background: rgba(255,255,255,0.08);
-        color: rgba(255,255,255,0.85);
-        font-size: 0.78rem;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        cursor: pointer;
-        transition: all 0.2s;
-        backdrop-filter: blur(8px);
-      }
-      .btn:hover {
-        background: rgba(255,255,255,0.18);
-        border-color: rgba(255,255,255,0.45);
-      }
-      .btn.primary {
-        background: rgba(255,255,255,0.15);
-        border-color: rgba(255,255,255,0.4);
-      }
-
-      #hex-display {
-        font-size: 0.7rem;
-        color: rgba(255,255,255,0.4);
-        letter-spacing: 0.15em;
-        font-family: monospace;
-        text-align: center;
-      }
-
+      /* ── Slot selector (top-right) ─────────────────────────────────── */
       #slot-indicator {
-        position: absolute;
-        top: 28px;
-        right: 28px;
-        display: flex;
-        gap: 8px;
+        position: absolute; top: 28px; right: 28px;
+        display: flex; gap: 8px;
         pointer-events: all;
       }
-
       .slot-btn {
-        padding: 8px 16px;
-        border-radius: 50px;
+        padding: 8px 16px; border-radius: 50px;
         border: 1px solid rgba(255,255,255,0.15);
         background: rgba(0,0,0,0.3);
         color: rgba(255,255,255,0.5);
-        font-size: 0.7rem;
-        letter-spacing: 0.1em;
-        cursor: pointer;
-        transition: all 0.2s;
-        backdrop-filter: blur(8px);
+        font-size: 0.7rem; letter-spacing: 0.1em; cursor: pointer;
+        transition: all 0.2s; backdrop-filter: blur(8px);
       }
       .slot-btn.active {
         border-color: rgba(255,255,255,0.5);
@@ -178,103 +51,257 @@
         background: rgba(255,255,255,0.1);
       }
 
-      #color-name {
-        position: absolute;
-        top: 50%;
-        left: 28px;
-        transform: translateY(-50%);
-        color: rgba(255,255,255,0.6);
-        font-size: 0.9rem;
-        font-weight: 300;
-        letter-spacing: 0.2em;
-        text-transform: uppercase;
+      /* ── Psychology panel (left-center) ────────────────────────────── */
+      #psych-panel {
+        position: absolute; left: 28px; top: 50%; transform: translateY(-50%);
+        background: rgba(0,0,0,0.5); backdrop-filter: blur(18px);
+        border: 1px solid rgba(255,255,255,0.1); border-radius: 18px;
+        padding: 22px 20px; width: 170px;
+        opacity: 0; transition: opacity 0.35s;
         pointer-events: none;
-        transition: opacity 0.4s;
+      }
+      #psych-panel.visible { opacity: 1; }
+
+      #psych-dot {
+        width: 36px; height: 36px; border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.25);
+        margin-bottom: 10px;
+        transition: background 0.4s, box-shadow 0.4s;
+        box-shadow: 0 0 16px rgba(255,255,255,0.1);
+      }
+      #psych-name {
+        font-size: 1rem; font-weight: 600; letter-spacing: 0.05em;
+        color: rgba(255,255,255,0.92); margin-bottom: 4px;
+      }
+      #psych-category {
+        font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase;
+        margin-bottom: 14px;
+      }
+      #psych-category.primary   { color: #ffd700; }
+      #psych-category.secondary { color: #c0c0c0; }
+      #psych-category.tertiary  { color: rgba(255,255,255,0.35); }
+
+      #psych-divider {
+        height: 1px; background: rgba(255,255,255,0.1); margin-bottom: 12px;
+      }
+      #psych-traits {
+        display: flex; flex-direction: column; gap: 5px;
+      }
+      .trait {
+        font-size: 0.7rem; color: rgba(255,255,255,0.6);
+        letter-spacing: 0.06em;
+        display: flex; align-items: center; gap: 6px;
+      }
+      .trait::before {
+        content: '';
+        display: inline-block; width: 4px; height: 4px;
+        border-radius: 50%; background: currentColor; flex-shrink: 0;
+        opacity: 0.7;
       }
 
+      /* ── Hints (right-center) ───────────────────────────────────────── */
       #hint {
-        position: absolute;
-        top: 50%;
-        right: 28px;
-        transform: translateY(-50%);
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
+        position: absolute; top: 50%; right: 28px; transform: translateY(-50%);
+        display: flex; flex-direction: column; gap: 12px;
         pointer-events: none;
       }
-
       .hint-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: rgba(255,255,255,0.35);
-        font-size: 0.68rem;
-        letter-spacing: 0.08em;
+        display: flex; align-items: center; gap: 10px;
+        color: rgba(255,255,255,0.3); font-size: 0.65rem; letter-spacing: 0.08em;
       }
       .hint-icon {
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
-        background: rgba(255,255,255,0.08);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.85rem;
+        width: 26px; height: 26px; border-radius: 8px;
+        background: rgba(255,255,255,0.07);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.8rem;
       }
+
+      /* ── Bottom panel (scheme + mix) ───────────────────────────────── */
+      #bottom-panel {
+        position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+        display: flex; flex-direction: column; align-items: center; gap: 10px;
+        pointer-events: all;
+      }
+
+      /* ── Scheme selector ────────────────────────────────────────────── */
+      #scheme-panel {
+        display: flex; flex-direction: column; align-items: center; gap: 8px;
+        background: rgba(0,0,0,0.4); backdrop-filter: blur(14px);
+        border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
+        padding: 12px 18px;
+      }
+
+      #scheme-header {
+        font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
+        color: rgba(255,255,255,0.3); align-self: flex-start; margin-bottom: 2px;
+      }
+
+      #scheme-buttons {
+        display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;
+        max-width: 560px;
+      }
+      .scheme-btn {
+        padding: 5px 11px; border-radius: 50px;
+        border: 1px solid rgba(255,255,255,0.13);
+        background: rgba(255,255,255,0.04);
+        color: rgba(255,255,255,0.45);
+        font-size: 0.62rem; letter-spacing: 0.08em; cursor: pointer;
+        transition: all 0.2s; white-space: nowrap;
+      }
+      .scheme-btn:hover {
+        background: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.3);
+        color: rgba(255,255,255,0.7);
+      }
+      .scheme-btn.active {
+        border-color: rgba(255,255,255,0.55);
+        color: rgba(255,255,255,0.95);
+        background: rgba(255,255,255,0.12);
+      }
+
+      #scheme-desc {
+        font-size: 0.65rem; color: rgba(255,255,255,0.38);
+        letter-spacing: 0.04em; text-align: center; font-style: italic;
+        min-height: 1.1em; max-width: 460px;
+        transition: opacity 0.3s;
+      }
+
+      #scheme-palette {
+        display: flex; gap: 7px; align-items: center;
+        min-height: 28px; flex-wrap: wrap; justify-content: center;
+      }
+      .palette-swatch {
+        width: 28px; height: 28px; border-radius: 50%;
+        border: 1.5px solid rgba(255,255,255,0.25);
+        transition: all 0.5s;
+        cursor: default;
+        position: relative;
+      }
+      .palette-swatch .palette-label {
+        position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
+        font-size: 0.5rem; color: rgba(255,255,255,0.4); white-space: nowrap;
+        letter-spacing: 0.05em;
+      }
+
+      /* ── Mix panel ──────────────────────────────────────────────────── */
+      #mix-preview {
+        display: flex; align-items: center; gap: 14px;
+        background: rgba(0,0,0,0.45); backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,0.12); border-radius: 20px;
+        padding: 14px 22px;
+      }
+      .color-slot { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+      .color-swatch {
+        width: 50px; height: 50px; border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.22); cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.3s;
+      }
+      .color-swatch:hover { transform: scale(1.1); }
+      .color-swatch.active { border-color: rgba(255,255,255,0.8); }
+      .color-label {
+        font-size: 0.58rem; color: rgba(255,255,255,0.45);
+        letter-spacing: 0.1em; text-align: center;
+      }
+      .sep { color: rgba(255,255,255,0.35); font-size: 1.2rem; font-weight: 100; padding-bottom: 16px; }
+      #result-swatch {
+        width: 60px; height: 60px; border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.28);
+        transition: background 0.7s, box-shadow 0.7s;
+      }
+      #hex-display {
+        font-size: 0.65rem; color: rgba(255,255,255,0.38);
+        letter-spacing: 0.12em; font-family: monospace; text-align: center;
+      }
+
+      /* ── Buttons ────────────────────────────────────────────────────── */
+      #controls { display: flex; gap: 8px; align-items: center; }
+      .btn {
+        padding: 9px 20px; border-radius: 50px;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(255,255,255,0.07);
+        color: rgba(255,255,255,0.8);
+        font-size: 0.73rem; letter-spacing: 0.1em; text-transform: uppercase;
+        cursor: pointer; transition: all 0.2s; backdrop-filter: blur(8px);
+      }
+      .btn:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.4); }
+      .btn.primary { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.38); }
     </style>
   </head>
   <body>
     <div id="canvas-container"></div>
     <div id="ui">
+
       <div id="title">Color Workshop</div>
-      <div id="subtitle">Click the wheel · Mix colors · Feel the space</div>
+      <div id="subtitle">Click the wheel to pick · Mix colors · Feel the space</div>
 
-      <div id="color-name">—</div>
-
+      <!-- Slot selector -->
       <div id="slot-indicator">
         <button class="slot-btn active" data-slot="0">Color A</button>
         <button class="slot-btn" data-slot="1">Color B</button>
       </div>
 
-      <div id="color-panel">
+      <!-- Psychology panel -->
+      <div id="psych-panel">
+        <div id="psych-dot"></div>
+        <div id="psych-name">—</div>
+        <div id="psych-category" class="tertiary">—</div>
+        <div id="psych-divider"></div>
+        <div id="psych-traits"></div>
+      </div>
+
+      <!-- Hints -->
+      <div id="hint">
+        <div class="hint-item"><div class="hint-icon">🖱</div><span>Drag to rotate</span></div>
+        <div class="hint-item"><div class="hint-icon">⚙</div><span>Scroll to zoom</span></div>
+        <div class="hint-item"><div class="hint-icon">🎨</div><span>Click wheel to pick</span></div>
+      </div>
+
+      <!-- Bottom: scheme + mix + buttons -->
+      <div id="bottom-panel">
+
+        <div id="scheme-panel">
+          <div id="scheme-header">Color Harmony Scheme</div>
+          <div id="scheme-buttons">
+            <button class="scheme-btn active" data-scheme="none">Free</button>
+            <button class="scheme-btn" data-scheme="mono">Mono</button>
+            <button class="scheme-btn" data-scheme="complementary">Comp</button>
+            <button class="scheme-btn" data-scheme="analogous">Analog</button>
+            <button class="scheme-btn" data-scheme="triadic">Triadic</button>
+            <button class="scheme-btn" data-scheme="split">Split</button>
+            <button class="scheme-btn" data-scheme="compound">Compound</button>
+            <button class="scheme-btn" data-scheme="tetradic">Tetrad</button>
+            <button class="scheme-btn" data-scheme="square">Square</button>
+            <button class="scheme-btn" data-scheme="double">Dbl Split</button>
+          </div>
+          <div id="scheme-desc">Explore freely — no harmony scheme applied.</div>
+          <div id="scheme-palette"></div>
+        </div>
+
         <div id="mix-preview">
           <div class="color-slot">
-            <div class="color-swatch active" id="swatch-a" style="background:#ff0000;"></div>
+            <div class="color-swatch active" id="swatch-a" style="background:#ff2200;"></div>
             <div class="color-label">A</div>
           </div>
-          <span class="plus-sign">+</span>
+          <span class="sep">+</span>
           <div class="color-slot">
-            <div class="color-swatch" id="swatch-b" style="background:#0000ff;"></div>
+            <div class="color-swatch" id="swatch-b" style="background:#0033ff;"></div>
             <div class="color-label">B</div>
           </div>
-          <span class="arrow-sign">→</span>
+          <span class="sep">→</span>
           <div class="color-slot">
-            <div id="result-swatch" style="background:#7f007f;"></div>
-            <div id="hex-display">#7f007f</div>
+            <div id="result-swatch" style="background:#7f10ff;"></div>
+            <div id="hex-display">#7f10ff</div>
           </div>
         </div>
+
         <div id="controls">
           <button class="btn" id="btn-reset">Reset</button>
           <button class="btn primary" id="btn-mix">Apply Mix</button>
           <button class="btn" id="btn-randomize">Random</button>
         </div>
-      </div>
 
-      <div id="hint">
-        <div class="hint-item">
-          <div class="hint-icon">🖱</div>
-          <span>Drag to rotate</span>
-        </div>
-        <div class="hint-item">
-          <div class="hint-icon">⚙</div>
-          <span>Scroll to zoom</span>
-        </div>
-        <div class="hint-item">
-          <div class="hint-icon">🎨</div>
-          <span>Click wheel to pick</span>
-        </div>
-      </div>
-    </div>
+      </div><!-- /bottom-panel -->
+    </div><!-- /ui -->
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
