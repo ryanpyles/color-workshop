@@ -6,6 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { colorPsychology, getSchemeHues, SCHEMES } from './colorUtils.js';
 import { createColorWheel } from './colorWheel.js';
 import { createEnvironment } from './environment.js';
+import { savePalette, loadPalettes } from './supabase.js';
 
 // ── App state ──────────────────────────────────────────────────────────────
 const state = {
@@ -287,6 +288,67 @@ renderer.domElement.addEventListener('touchend', e => {
   renderer.domElement.dispatchEvent(new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY }));
 }, { passive: false });
 
+// ── Saved palettes UI ──────────────────────────────────────────────────────
+const savedList  = document.getElementById('saved-list');
+const savedEmpty = document.getElementById('saved-empty');
+const saveToast  = document.getElementById('save-toast');
+
+function showToast(msg = 'Palette saved!') {
+  saveToast.textContent = msg;
+  saveToast.classList.add('show');
+  setTimeout(() => saveToast.classList.remove('show'), 2200);
+}
+
+function renderSavedPalettes(palettes) {
+  if (!palettes.length) {
+    savedList.innerHTML = '<div id="saved-empty">None yet — save one below</div>';
+    return;
+  }
+  savedList.innerHTML = palettes.map(p => `
+    <div class="saved-palette" data-id="${p.id}"
+         data-a="${p.color_a}" data-b="${p.color_b}"
+         data-scheme="${p.scheme}" data-base="${p.base_hue ?? ''}">
+      <div class="saved-dot" style="background:${p.color_a};box-shadow:0 0 6px ${p.color_a}80;"></div>
+      <div class="saved-dot" style="background:${p.color_b};box-shadow:0 0 6px ${p.color_b}80;"></div>
+      <div class="saved-dot" style="background:${p.color_mix};box-shadow:0 0 6px ${p.color_mix}80;"></div>
+      <span class="saved-scheme">${p.scheme === 'none' ? 'free' : p.scheme}</span>
+    </div>`).join('');
+
+  savedList.querySelectorAll('.saved-palette').forEach(el => {
+    el.addEventListener('click', () => {
+      state.slotColors[0].set(el.dataset.a);
+      state.slotColors[1].set(el.dataset.b);
+      if (el.dataset.scheme && el.dataset.scheme !== 'none') {
+        state.activeScheme = el.dataset.scheme;
+        document.querySelectorAll('.scheme-btn').forEach(b =>
+          b.classList.toggle('active', b.dataset.scheme === state.activeScheme));
+        schemeDesc.textContent = SCHEMES[state.activeScheme]?.desc ?? '';
+        if (el.dataset.base) {
+          state.baseHue = parseFloat(el.dataset.base);
+          state.schemeHues = getSchemeHues(state.baseHue, state.activeScheme);
+          applySchemeToWheel(state.schemeHues);
+          renderSchemePalette(state.schemeHues);
+        }
+      }
+      updateMixPanel();
+      updateLights();
+      applyEnvColor(state.slotColors[0]);
+    });
+  });
+}
+
+async function refreshSavedPalettes() {
+  try {
+    const palettes = await loadPalettes(12);
+    renderSavedPalettes(palettes);
+  } catch (e) {
+    console.error('Failed to load palettes', e);
+  }
+}
+
+// Load on startup
+refreshSavedPalettes();
+
 // ── Action buttons ─────────────────────────────────────────────────────────
 document.getElementById('btn-mix').addEventListener('click', () => {
   applyEnvColor(state.mixedColor);
@@ -307,6 +369,30 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   updateMixPanel();
   updateLights();
   applyEnvColor(new THREE.Color(0x220033));
+});
+
+document.getElementById('btn-save').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-save');
+  btn.classList.add('saving');
+  btn.textContent = 'Saving…';
+  try {
+    await savePalette({
+      colorA:     hex(state.slotColors[0]),
+      colorB:     hex(state.slotColors[1]),
+      colorMix:   hex(state.mixedColor),
+      scheme:     state.activeScheme,
+      schemeHues: state.schemeHues,
+      baseHue:    state.baseHue,
+    });
+    showToast('Palette saved!');
+    await refreshSavedPalettes();
+  } catch (e) {
+    showToast('Save failed — check console');
+    console.error(e);
+  } finally {
+    btn.classList.remove('saving');
+    btn.textContent = 'Save';
+  }
 });
 
 document.getElementById('btn-randomize').addEventListener('click', () => {

@@ -99,22 +99,6 @@
         opacity: 0.7;
       }
 
-      /* ── Hints (right-center) ───────────────────────────────────────── */
-      #hint {
-        position: absolute; top: 50%; right: 28px; transform: translateY(-50%);
-        display: flex; flex-direction: column; gap: 12px;
-        pointer-events: none;
-      }
-      .hint-item {
-        display: flex; align-items: center; gap: 10px;
-        color: rgba(255,255,255,0.3); font-size: 0.65rem; letter-spacing: 0.08em;
-      }
-      .hint-icon {
-        width: 26px; height: 26px; border-radius: 8px;
-        background: rgba(255,255,255,0.07);
-        display: flex; align-items: center; justify-content: center;
-        font-size: 0.8rem;
-      }
 
       /* ── Bottom panel (scheme + mix) ───────────────────────────────── */
       #bottom-panel {
@@ -225,6 +209,60 @@
       }
       .btn:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.4); }
       .btn.primary { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.38); }
+      .btn.save { border-color: rgba(255,220,100,0.35); color: rgba(255,220,100,0.85); }
+      .btn.save:hover { background: rgba(255,220,100,0.12); border-color: rgba(255,220,100,0.6); }
+      .btn.saving { opacity: 0.5; pointer-events: none; }
+
+      /* ── Saved palettes panel ───────────────────────────────────────── */
+      #saved-panel {
+        position: absolute; top: 50%; right: 28px; transform: translateY(-50%);
+        display: flex; flex-direction: column; gap: 10px;
+        pointer-events: all;
+        max-height: 60vh;
+      }
+      #saved-header {
+        font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase;
+        color: rgba(255,255,255,0.3); text-align: right;
+      }
+      #saved-list {
+        display: flex; flex-direction: column; gap: 7px;
+        overflow-y: auto; max-height: calc(60vh - 30px);
+        scrollbar-width: none;
+      }
+      #saved-list::-webkit-scrollbar { display: none; }
+      .saved-palette {
+        display: flex; align-items: center; gap: 5px;
+        background: rgba(0,0,0,0.4); backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.09); border-radius: 30px;
+        padding: 5px 10px 5px 6px;
+        cursor: pointer; transition: all 0.2s;
+      }
+      .saved-palette:hover {
+        border-color: rgba(255,255,255,0.28);
+        background: rgba(255,255,255,0.07);
+      }
+      .saved-dot {
+        width: 18px; height: 18px; border-radius: 50%;
+        border: 1.5px solid rgba(255,255,255,0.2); flex-shrink: 0;
+      }
+      .saved-scheme {
+        font-size: 0.55rem; color: rgba(255,255,255,0.35);
+        letter-spacing: 0.08em; white-space: nowrap; text-transform: uppercase;
+      }
+      #saved-empty {
+        font-size: 0.62rem; color: rgba(255,255,255,0.2);
+        letter-spacing: 0.08em; text-align: right; font-style: italic;
+      }
+      #save-toast {
+        position: absolute; top: 90px; left: 50%; transform: translateX(-50%);
+        background: rgba(0,0,0,0.6); backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,220,100,0.3); border-radius: 50px;
+        padding: 8px 20px; font-size: 0.7rem; letter-spacing: 0.1em;
+        color: rgba(255,220,100,0.85);
+        opacity: 0; transition: opacity 0.3s; pointer-events: none;
+        white-space: nowrap;
+      }
+      #save-toast.show { opacity: 1; }
     </style>
   </head>
   <body>
@@ -249,12 +287,16 @@
         <div id="psych-traits"></div>
       </div>
 
-      <!-- Hints -->
-      <div id="hint">
-        <div class="hint-item"><div class="hint-icon">🖱</div><span>Drag to rotate</span></div>
-        <div class="hint-item"><div class="hint-icon">⚙</div><span>Scroll to zoom</span></div>
-        <div class="hint-item"><div class="hint-icon">🎨</div><span>Click wheel to pick</span></div>
+      <!-- Saved palettes -->
+      <div id="saved-panel">
+        <div id="saved-header">Saved Palettes</div>
+        <div id="saved-list">
+          <div id="saved-empty">None yet — save one below</div>
+        </div>
       </div>
+
+      <!-- Save toast -->
+      <div id="save-toast">Palette saved!</div>
 
       <!-- Bottom: scheme + mix + buttons -->
       <div id="bottom-panel">
@@ -298,6 +340,7 @@
           <button class="btn" id="btn-reset">Reset</button>
           <button class="btn primary" id="btn-mix">Apply Mix</button>
           <button class="btn" id="btn-randomize">Random</button>
+          <button class="btn save" id="btn-save">Save</button>
         </div>
 
       </div><!-- /bottom-panel -->
