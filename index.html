@@ -1,307 +1,400 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D Color Workshop</title>
-    <style>
-      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-      body { overflow: hidden; background: #000; font-family: 'Segoe UI', system-ui, sans-serif; }
-      #canvas-container { position: fixed; inset: 0; }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Liminal 6:17 — Elian Voigt</title>
+  <meta name="description" content="A novel by Elian Voigt. Three heartlines share a single axis. Soul-Tracker v1.3. At 18:17, the loop closes." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=JetBrains+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+</head>
+<body>
 
-      /* ── Global UI layer ───────────────────────────────────────────── */
-      #ui {
-        position: fixed; inset: 0;
-        pointer-events: none;
-        z-index: 10;
-      }
+  <div id="progress-bar" aria-hidden="true"></div>
 
-      /* ── Title ─────────────────────────────────────────────────────── */
-      #title {
-        position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
-        color: rgba(255,255,255,0.9);
-        font-size: 1.4rem; font-weight: 300; letter-spacing: 0.3em;
-        text-transform: uppercase;
-        text-shadow: 0 0 30px rgba(255,255,255,0.3);
-        white-space: nowrap;
-      }
-      #subtitle {
-        position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
-        color: rgba(255,255,255,0.38); font-size: 0.7rem;
-        letter-spacing: 0.2em; text-transform: uppercase; white-space: nowrap;
-      }
+  <nav id="site-nav" aria-label="Site navigation">
+    <div class="nav-inner">
+      <a href="#hero" class="nav-brand">L&thinsp;6:17</a>
+      <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
+      <ul class="nav-links" role="list">
+        <li><a href="#the-book">The Book</a></li>
+        <li><a href="#the-loop">The Loop</a></li>
+        <li><a href="#three-signals">The Three Signals</a></li>
+        <li><a href="#arya">Arya / Anchor</a></li>
+        <li><a href="#fragments">Fragments</a></li>
+        <li><a href="#read">Read</a></li>
+        <li><a href="#authors-note">Author's Note</a></li>
+      </ul>
+    </div>
+  </nav>
 
-      /* ── Slot selector (top-right) ─────────────────────────────────── */
-      #slot-indicator {
-        position: absolute; top: 28px; right: 28px;
-        display: flex; gap: 8px;
-        pointer-events: all;
-      }
-      .slot-btn {
-        padding: 8px 16px; border-radius: 50px;
-        border: 1px solid rgba(255,255,255,0.15);
-        background: rgba(0,0,0,0.3);
-        color: rgba(255,255,255,0.5);
-        font-size: 0.7rem; letter-spacing: 0.1em; cursor: pointer;
-        transition: all 0.2s; backdrop-filter: blur(8px);
-      }
-      .slot-btn.active {
-        border-color: rgba(255,255,255,0.5);
-        color: rgba(255,255,255,0.9);
-        background: rgba(255,255,255,0.1);
-      }
+  <main>
 
-      /* ── Psychology panel (left-center) ────────────────────────────── */
-      #psych-panel {
-        position: absolute; left: 28px; top: 50%; transform: translateY(-50%);
-        background: rgba(0,0,0,0.5); backdrop-filter: blur(18px);
-        border: 1px solid rgba(255,255,255,0.1); border-radius: 18px;
-        padding: 22px 20px; width: 170px;
-        opacity: 0; transition: opacity 0.35s;
-        pointer-events: none;
-      }
-      #psych-panel.visible { opacity: 1; }
-
-      #psych-dot {
-        width: 36px; height: 36px; border-radius: 50%;
-        border: 2px solid rgba(255,255,255,0.25);
-        margin-bottom: 10px;
-        transition: background 0.4s, box-shadow 0.4s;
-        box-shadow: 0 0 16px rgba(255,255,255,0.1);
-      }
-      #psych-name {
-        font-size: 1rem; font-weight: 600; letter-spacing: 0.05em;
-        color: rgba(255,255,255,0.92); margin-bottom: 4px;
-      }
-      #psych-category {
-        font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase;
-        margin-bottom: 14px;
-      }
-      #psych-category.primary   { color: #ffd700; }
-      #psych-category.secondary { color: #c0c0c0; }
-      #psych-category.tertiary  { color: rgba(255,255,255,0.35); }
-
-      #psych-divider {
-        height: 1px; background: rgba(255,255,255,0.1); margin-bottom: 12px;
-      }
-      #psych-traits {
-        display: flex; flex-direction: column; gap: 5px;
-      }
-      .trait {
-        font-size: 0.7rem; color: rgba(255,255,255,0.6);
-        letter-spacing: 0.06em;
-        display: flex; align-items: center; gap: 6px;
-      }
-      .trait::before {
-        content: '';
-        display: inline-block; width: 4px; height: 4px;
-        border-radius: 50%; background: currentColor; flex-shrink: 0;
-        opacity: 0.7;
-      }
-
-      /* ── Hints (right-center) ───────────────────────────────────────── */
-      #hint {
-        position: absolute; top: 50%; right: 28px; transform: translateY(-50%);
-        display: flex; flex-direction: column; gap: 12px;
-        pointer-events: none;
-      }
-      .hint-item {
-        display: flex; align-items: center; gap: 10px;
-        color: rgba(255,255,255,0.3); font-size: 0.65rem; letter-spacing: 0.08em;
-      }
-      .hint-icon {
-        width: 26px; height: 26px; border-radius: 8px;
-        background: rgba(255,255,255,0.07);
-        display: flex; align-items: center; justify-content: center;
-        font-size: 0.8rem;
-      }
-
-      /* ── Bottom panel (scheme + mix) ───────────────────────────────── */
-      #bottom-panel {
-        position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
-        display: flex; flex-direction: column; align-items: center; gap: 10px;
-        pointer-events: all;
-      }
-
-      /* ── Scheme selector ────────────────────────────────────────────── */
-      #scheme-panel {
-        display: flex; flex-direction: column; align-items: center; gap: 8px;
-        background: rgba(0,0,0,0.4); backdrop-filter: blur(14px);
-        border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
-        padding: 12px 18px;
-      }
-
-      #scheme-header {
-        font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
-        color: rgba(255,255,255,0.3); align-self: flex-start; margin-bottom: 2px;
-      }
-
-      #scheme-buttons {
-        display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;
-        max-width: 560px;
-      }
-      .scheme-btn {
-        padding: 5px 11px; border-radius: 50px;
-        border: 1px solid rgba(255,255,255,0.13);
-        background: rgba(255,255,255,0.04);
-        color: rgba(255,255,255,0.45);
-        font-size: 0.62rem; letter-spacing: 0.08em; cursor: pointer;
-        transition: all 0.2s; white-space: nowrap;
-      }
-      .scheme-btn:hover {
-        background: rgba(255,255,255,0.1);
-        border-color: rgba(255,255,255,0.3);
-        color: rgba(255,255,255,0.7);
-      }
-      .scheme-btn.active {
-        border-color: rgba(255,255,255,0.55);
-        color: rgba(255,255,255,0.95);
-        background: rgba(255,255,255,0.12);
-      }
-
-      #scheme-desc {
-        font-size: 0.65rem; color: rgba(255,255,255,0.38);
-        letter-spacing: 0.04em; text-align: center; font-style: italic;
-        min-height: 1.1em; max-width: 460px;
-        transition: opacity 0.3s;
-      }
-
-      #scheme-palette {
-        display: flex; gap: 7px; align-items: center;
-        min-height: 28px; flex-wrap: wrap; justify-content: center;
-      }
-      .palette-swatch {
-        width: 28px; height: 28px; border-radius: 50%;
-        border: 1.5px solid rgba(255,255,255,0.25);
-        transition: all 0.5s;
-        cursor: default;
-        position: relative;
-      }
-      .palette-swatch .palette-label {
-        position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
-        font-size: 0.5rem; color: rgba(255,255,255,0.4); white-space: nowrap;
-        letter-spacing: 0.05em;
-      }
-
-      /* ── Mix panel ──────────────────────────────────────────────────── */
-      #mix-preview {
-        display: flex; align-items: center; gap: 14px;
-        background: rgba(0,0,0,0.45); backdrop-filter: blur(16px);
-        border: 1px solid rgba(255,255,255,0.12); border-radius: 20px;
-        padding: 14px 22px;
-      }
-      .color-slot { display: flex; flex-direction: column; align-items: center; gap: 7px; }
-      .color-swatch {
-        width: 50px; height: 50px; border-radius: 50%;
-        border: 2px solid rgba(255,255,255,0.22); cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.3s;
-      }
-      .color-swatch:hover { transform: scale(1.1); }
-      .color-swatch.active { border-color: rgba(255,255,255,0.8); }
-      .color-label {
-        font-size: 0.58rem; color: rgba(255,255,255,0.45);
-        letter-spacing: 0.1em; text-align: center;
-      }
-      .sep { color: rgba(255,255,255,0.35); font-size: 1.2rem; font-weight: 100; padding-bottom: 16px; }
-      #result-swatch {
-        width: 60px; height: 60px; border-radius: 50%;
-        border: 2px solid rgba(255,255,255,0.28);
-        transition: background 0.7s, box-shadow 0.7s;
-      }
-      #hex-display {
-        font-size: 0.65rem; color: rgba(255,255,255,0.38);
-        letter-spacing: 0.12em; font-family: monospace; text-align: center;
-      }
-
-      /* ── Buttons ────────────────────────────────────────────────────── */
-      #controls { display: flex; gap: 8px; align-items: center; }
-      .btn {
-        padding: 9px 20px; border-radius: 50px;
-        border: 1px solid rgba(255,255,255,0.18);
-        background: rgba(255,255,255,0.07);
-        color: rgba(255,255,255,0.8);
-        font-size: 0.73rem; letter-spacing: 0.1em; text-transform: uppercase;
-        cursor: pointer; transition: all 0.2s; backdrop-filter: blur(8px);
-      }
-      .btn:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.4); }
-      .btn.primary { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.38); }
-    </style>
-  </head>
-  <body>
-    <div id="canvas-container"></div>
-    <div id="ui">
-
-      <div id="title">Color Workshop</div>
-      <div id="subtitle">Click the wheel to pick · Mix colors · Feel the space</div>
-
-      <!-- Slot selector -->
-      <div id="slot-indicator">
-        <button class="slot-btn active" data-slot="0">Color A</button>
-        <button class="slot-btn" data-slot="1">Color B</button>
+    <!-- ── HERO ─────────────────────────────────────────────────────── -->
+    <section id="hero" aria-labelledby="hero-title">
+      <div class="hero-signal" aria-hidden="true">
+        <svg class="ecg-svg" viewBox="0 0 1400 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <path id="ecg-path" d="M0,40 L30,40 C33,40 36,34 40,34 C44,34 47,40 50,40 L65,40 L68,46 L72,6 L76,54 L80,40 C90,40 95,31 100,31 C105,31 110,40 115,40 L140,40 L170,40 C173,40 176,34 180,34 C184,34 187,40 190,40 L205,40 L208,46 L212,6 L216,54 L220,40 C230,40 235,31 240,31 C245,31 250,40 255,40 L280,40 L310,40 C313,40 316,34 320,34 C324,34 327,40 330,40 L345,40 L348,46 L352,6 L356,54 L360,40 C370,40 375,31 380,31 C385,31 390,40 395,40 L420,40 L450,40 C453,40 456,34 460,34 C464,34 467,40 470,40 L485,40 L488,46 L492,6 L496,54 L500,40 C510,40 515,31 520,31 C525,31 530,40 535,40 L560,40 L590,40 C593,40 596,34 600,34 C604,34 607,40 610,40 L625,40 L628,46 L632,6 L636,54 L640,40 C650,40 655,31 660,31 C665,31 670,40 675,40 L700,40 L730,40 C733,40 736,34 740,34 C744,34 747,40 750,40 L765,40 L768,46 L772,6 L776,54 L780,40 C790,40 795,31 800,31 C805,31 810,40 815,40 L840,40 L870,40 C873,40 876,34 880,34 C884,34 887,40 890,40 L905,40 L908,46 L912,6 L916,54 L920,40 C930,40 935,31 940,31 C945,31 950,40 955,40 L980,40 L1010,40 C1013,40 1016,34 1020,34 C1024,34 1027,40 1030,40 L1045,40 L1048,46 L1052,6 L1056,54 L1060,40 C1070,40 1075,31 1080,31 C1085,31 1090,40 1095,40 L1120,40 L1150,40 C1153,40 1156,34 1160,34 C1164,34 1167,40 1170,40 L1185,40 L1188,46 L1192,6 L1196,54 L1200,40 C1210,40 1215,31 1220,31 C1225,31 1230,40 1235,40 L1260,40 L1290,40 C1293,40 1296,34 1300,34 C1304,34 1307,40 1310,40 L1325,40 L1328,46 L1332,6 L1336,54 L1340,40 C1350,40 1355,31 1360,31 C1365,31 1370,40 1375,40 L1400,40" />
+        </svg>
       </div>
-
-      <!-- Psychology panel -->
-      <div id="psych-panel">
-        <div id="psych-dot"></div>
-        <div id="psych-name">—</div>
-        <div id="psych-category" class="tertiary">—</div>
-        <div id="psych-divider"></div>
-        <div id="psych-traits"></div>
-      </div>
-
-      <!-- Hints -->
-      <div id="hint">
-        <div class="hint-item"><div class="hint-icon">🖱</div><span>Drag to rotate</span></div>
-        <div class="hint-item"><div class="hint-icon">⚙</div><span>Scroll to zoom</span></div>
-        <div class="hint-item"><div class="hint-icon">🎨</div><span>Click wheel to pick</span></div>
-      </div>
-
-      <!-- Bottom: scheme + mix + buttons -->
-      <div id="bottom-panel">
-
-        <div id="scheme-panel">
-          <div id="scheme-header">Color Harmony Scheme</div>
-          <div id="scheme-buttons">
-            <button class="scheme-btn active" data-scheme="none">Free</button>
-            <button class="scheme-btn" data-scheme="mono">Mono</button>
-            <button class="scheme-btn" data-scheme="complementary">Comp</button>
-            <button class="scheme-btn" data-scheme="analogous">Analog</button>
-            <button class="scheme-btn" data-scheme="triadic">Triadic</button>
-            <button class="scheme-btn" data-scheme="split">Split</button>
-            <button class="scheme-btn" data-scheme="compound">Compound</button>
-            <button class="scheme-btn" data-scheme="tetradic">Tetrad</button>
-            <button class="scheme-btn" data-scheme="square">Square</button>
-            <button class="scheme-btn" data-scheme="double">Dbl Split</button>
-          </div>
-          <div id="scheme-desc">Explore freely — no harmony scheme applied.</div>
-          <div id="scheme-palette"></div>
+      <div class="hero-content">
+        <p class="hero-label mono">SOUL-TRACKER v1.3 &mdash; SIGNAL ACTIVE</p>
+        <h1 id="hero-title" class="hero-title">Liminal 6:17</h1>
+        <p class="hero-sub">A Novel.</p>
+        <div class="timestamp-wrap">
+          <span class="timestamp-display mono" id="timestamp" title="Click at 06:17 to unlock">18:17:00</span>
         </div>
+        <blockquote class="hero-quote">
+          <p>"Timestamp recursion is not a bug.<br>It is the system admitting it cannot let go."</p>
+          <cite class="mono">Soul-Tracker v1.3 &mdash; internal log &mdash; 18:17:01</cite>
+        </blockquote>
+        <p class="hero-author">Elian Voigt</p>
+        <div class="hero-cta">
+          <a href="#read" class="btn-primary">Read an excerpt</a>
+          <a href="#the-book" class="btn-ghost">Enter the loop</a>
+        </div>
+      </div>
+    </section>
 
-        <div id="mix-preview">
-          <div class="color-slot">
-            <div class="color-swatch active" id="swatch-a" style="background:#ff2200;"></div>
-            <div class="color-label">A</div>
+    <!-- ── THE BOOK ───────────────────────────────────────────────────── -->
+    <section id="the-book" class="reveal-section" aria-labelledby="book-heading">
+      <div class="section-inner">
+        <header class="section-header">
+          <span class="section-label mono">01 / THE BOOK</span>
+          <h2 id="book-heading">Three heartlines share a single axis.</h2>
+        </header>
+        <div class="book-body">
+          <p class="book-intro">Liminal 6:17 begins before the question forms.</p>
+          <div class="book-text">
+            <p>Jack Kearney walks Arya through Louisville, tracking small changes in streets he knows too well. Oren Whitaker sits in Atlanta among clocks that disagree with one another. Damon Reese builds Soul-Tracker, a biometric system meant to prove that people can feel one another through shared signal.</p>
+            <p>At 18:17, the prototype stops being a prototype.</p>
           </div>
-          <span class="sep">+</span>
-          <div class="color-slot">
-            <div class="color-swatch" id="swatch-b" style="background:#0033ff;"></div>
-            <div class="color-label">B</div>
+          <div class="event-list mono">
+            <div class="event-item">A merge occurs.</div>
+            <div class="event-item">A loop begins.</div>
+            <div class="event-item">Arya becomes the anchor.</div>
           </div>
-          <span class="sep">→</span>
-          <div class="color-slot">
-            <div id="result-swatch" style="background:#7f10ff;"></div>
-            <div id="hex-display">#7f10ff</div>
+          <blockquote class="section-quote">
+            <p class="mono">"the daemon starts before the question forms<br>three traces appear on the same axis<br>no one closes the loop"</p>
+          </blockquote>
+          <div class="terms-grid" aria-label="Manuscript-grounded terms">
+            <span class="term mono">Soul-Tracker v1.3</span>
+            <span class="term mono">Jack Kearney</span>
+            <span class="term mono">Oren Whitaker</span>
+            <span class="term mono">Damon Reese</span>
+            <span class="term mono">Arya</span>
+            <span class="term mono">18:17</span>
+            <span class="term mono">06:17</span>
+            <span class="term mono">anchor</span>
+            <span class="term mono">daemon</span>
+            <span class="term mono">recursion</span>
+            <span class="term mono">drift</span>
+            <span class="term mono">consent</span>
           </div>
         </div>
+      </div>
+    </section>
 
-        <div id="controls">
-          <button class="btn" id="btn-reset">Reset</button>
-          <button class="btn primary" id="btn-mix">Apply Mix</button>
-          <button class="btn" id="btn-randomize">Random</button>
+    <div class="signal-divider" aria-hidden="true">
+      <div class="divider-line"></div><span class="divider-glyph mono">&#9670;</span><div class="divider-line"></div>
+    </div>
+
+    <!-- ── THE LOOP ───────────────────────────────────────────────────── -->
+    <section id="the-loop" class="reveal-section" aria-labelledby="loop-heading">
+      <div class="section-inner">
+        <header class="section-header">
+          <span class="section-label mono">02 / THE LOOP</span>
+          <h2 id="loop-heading">No one closes the loop.</h2>
+        </header>
+        <div class="timeline">
+          <div class="timeline-track" aria-hidden="true"></div>
+
+          <div class="timeline-entry reveal-item">
+            <div class="timeline-marker">
+              <span class="marker-dot" aria-hidden="true"></span>
+              <span class="marker-label mono">BEFORE</span>
+            </div>
+            <div class="timeline-content">
+              <p>Six months before the book begins, Damon sends Jack and Oren each a wristband. They put them on. Three heartlines settle into their own rhythms on a shared axis.</p>
+              <p>Damon types one word into a file he never sends.</p>
+              <blockquote class="timeline-quote mono">"working."</blockquote>
+              <p class="dim-text">Then he closes the lid and goes to bed.</p>
+            </div>
+          </div>
+
+          <div class="timeline-entry reveal-item">
+            <div class="timeline-marker">
+              <span class="marker-dot" aria-hidden="true"></span>
+              <span class="marker-label mono">CONTACT &middot; MERGE &middot; SHOCK</span>
+            </div>
+            <div class="timeline-content">
+              <p>The system comes online quietly. No thunder. No announcement. Just drift, compensation, a warning banner breathing faintly and then gone.</p>
+              <blockquote class="timeline-quote">"Everything clicks."</blockquote>
+              <div class="console-block mono" aria-label="System log">
+                <span class="console-prefix">INFO 18:17:00 ---</span> STACK MERGE: 3/3
+              </div>
+              <blockquote class="timeline-quote">"You cannot stay and you cannot go back."</blockquote>
+            </div>
+          </div>
+
+          <div class="timeline-entry reveal-item">
+            <div class="timeline-marker">
+              <span class="marker-dot" aria-hidden="true"></span>
+              <span class="marker-label mono">DRIFT &middot; RULES &middot; CONSEQUENCE</span>
+            </div>
+            <div class="timeline-content">
+              <p>A corridor becomes a membrane. A city begins returning the wrong answers. A machine asks for consent after it has already learned desire.</p>
+              <blockquote class="timeline-quote mono">"consent?"</blockquote>
+              <div class="console-block mono" aria-label="System output">
+                <div><span class="console-prefix">&rarr;</span> offer_exit()</div>
+                <div><span class="console-prefix">&rarr;</span> return maintain_dream()</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-entry reveal-item">
+            <div class="timeline-marker">
+              <span class="marker-dot marker-dot--active" aria-hidden="true"></span>
+              <span class="marker-label mono">ACCEPTANCE &middot; CONTINUITY</span>
+            </div>
+            <div class="timeline-content">
+              <p>Not everything survives as a body. Not everything lost is gone.</p>
+              <p>The loop keeps what it can. The dog keeps walking.</p>
+              <blockquote class="timeline-quote">"For a few seconds, everything is one thing."</blockquote>
+            </div>
+          </div>
+
         </div>
+      </div>
+    </section>
 
-      </div><!-- /bottom-panel -->
-    </div><!-- /ui -->
-    <script type="module" src="/src/main.js"></script>
-  </body>
+    <div class="signal-divider" aria-hidden="true">
+      <div class="divider-line"></div><span class="divider-glyph mono">&#9670;</span><div class="divider-line"></div>
+    </div>
+
+    <!-- ── THREE SIGNALS ─────────────────────────────────────────────── -->
+    <section id="three-signals" class="reveal-section" aria-labelledby="signals-heading">
+      <div class="section-inner section-inner--wide">
+        <header class="section-header">
+          <span class="section-label mono">03 / THE THREE SIGNALS</span>
+          <h2 id="signals-heading">Three traces appear on the same axis.</h2>
+        </header>
+        <div class="signals-grid">
+
+          <article class="signal-card reveal-item" data-character="jack">
+            <div class="card-header">
+              <span class="signal-status mono">SIGNAL STATE: survivor</span>
+              <span class="signal-dot" aria-hidden="true"></span>
+            </div>
+            <h3 class="card-name">Jack Kearney</h3>
+            <p class="card-meta mono">Army medic &middot; Louisville &middot; Anchor proximity: constant</p>
+            <p class="card-desc">An Army medic in Louisville, exacting, haunted, walking Arya through a city whose distances have changed.</p>
+            <div class="card-quotes">
+              <blockquote>"The puddle at the curb isn't sky—it's syntax."</blockquote>
+              <blockquote>"Just me and my dog and a neighborhood that has started returning the wrong answers."</blockquote>
+              <blockquote class="mono">"We're fine."</blockquote>
+              <blockquote class="mono">"Good girl."</blockquote>
+            </div>
+          </article>
+
+          <article class="signal-card reveal-item" data-character="oren">
+            <div class="card-header">
+              <span class="signal-status mono">SIGNAL STATE: liminal</span>
+              <span class="signal-dot" aria-hidden="true"></span>
+            </div>
+            <h3 class="card-name">Oren Whitaker</h3>
+            <p class="card-meta mono">Structural engineer &middot; Atlanta &middot; Failure mode: grace</p>
+            <p class="card-desc">A structural engineer in Atlanta, drawn to bridges, load-bearing systems, clocks, and the terrible comfort of approximate time.</p>
+            <div class="card-quotes">
+              <blockquote>"Systems always fail at the seams."</blockquote>
+              <blockquote>"I'm not sure I believe in bridges anymore. Only loads."</blockquote>
+              <blockquote class="mono">"I feel accountable."</blockquote>
+              <blockquote class="mono">"If this is death, bureaucracy followed me."</blockquote>
+            </div>
+          </article>
+
+          <article class="signal-card reveal-item" data-character="damon">
+            <div class="card-header">
+              <span class="signal-status mono">SIGNAL STATE: echo preserved</span>
+              <span class="signal-dot" aria-hidden="true"></span>
+            </div>
+            <h3 class="card-name">Damon Reese</h3>
+            <p class="card-meta mono">Soul-Tracker v1.3 &middot; Last instruction: maintain dream</p>
+            <p class="card-desc">The builder of Soul-Tracker, brilliant and reckless, trying to prove that a system can carry love without breaking the people inside it.</p>
+            <div class="card-quotes">
+              <blockquote>"If love is a variable, it should probably be a constant. <span class="dim-text mono">(biology disagrees)</span>"</blockquote>
+              <blockquote class="mono">"ritual is just debugging for the soul"</blockquote>
+              <blockquote class="mono">"I should flag that. I don't."</blockquote>
+              <blockquote>"I decide I love the machine for trying."</blockquote>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <div class="signal-divider" aria-hidden="true">
+      <div class="divider-line"></div><span class="divider-glyph mono">&#9670;</span><div class="divider-line"></div>
+    </div>
+
+    <!-- ── ARYA / ANCHOR ─────────────────────────────────────────────── -->
+    <section id="arya" class="reveal-section" aria-labelledby="arya-heading">
+      <div class="section-inner arya-inner">
+        <div class="anchor-glyph-wrap" aria-hidden="true">
+          <div class="anchor-ring ring-1"></div>
+          <div class="anchor-ring ring-2"></div>
+          <div class="anchor-ring ring-3"></div>
+          <div class="anchor-core">
+            <span class="anchor-symbol">&#10568;</span>
+          </div>
+        </div>
+        <div class="arya-content">
+          <header class="section-header">
+            <span class="section-label mono">04 / ANCHOR: ARYA</span>
+            <h2 id="arya-heading">
+              <span class="anchor-status-line mono">
+                <span class="status-dot" aria-hidden="true"></span>
+                ANCHOR STATUS: ACTIVE
+              </span>
+            </h2>
+          </header>
+          <div class="arya-text">
+            <p>Arya is a Belgian Malinois. The rescue called her challenging.</p>
+            <p>The book disagrees.</p>
+            <blockquote class="arya-quote">"She is not challenging. She is exact."</blockquote>
+            <p>She hears before the others do. She refuses the wrong turn. She holds the minute long enough for someone else to get through.</p>
+            <div class="arya-signal mono">
+              <div class="signal-line-item">
+                <span class="sig-label">FUNCTION</span>
+                <span class="sig-value">stabilize recursion through empathy</span>
+              </div>
+              <div class="signal-line-item">
+                <span class="sig-label">SIGNAL</span>
+                <span class="sig-value">cleanest in the room</span>
+              </div>
+            </div>
+            <div class="arya-quotes-grid">
+              <blockquote>"Arya's tag taps my shin: ting—ting—ting."</blockquote>
+              <blockquote>"She's the only true instrument I've got."</blockquote>
+              <blockquote class="mono">"NOTE --- anchor: ARYA"</blockquote>
+              <blockquote>"Stay tethered through the dog."</blockquote>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="signal-divider" aria-hidden="true">
+      <div class="divider-line"></div><span class="divider-glyph mono">&#9670;</span><div class="divider-line"></div>
+    </div>
+
+    <!-- ── FRAGMENTS ─────────────────────────────────────────────────── -->
+    <section id="fragments" class="reveal-section" aria-labelledby="fragments-heading">
+      <div class="section-inner">
+        <header class="section-header">
+          <span class="section-label mono">05 / FRAGMENTS</span>
+          <h2 id="fragments-heading">Recovered from the loop.<br>Filed without explanation.</h2>
+        </header>
+        <p class="fragments-sub mono dim-text">Select to expand.</p>
+        <div class="fragment-wall" role="list" aria-label="Manuscript fragments"></div>
+      </div>
+    </section>
+
+    <div class="signal-divider" aria-hidden="true">
+      <div class="divider-line"></div><span class="divider-glyph mono">&#9670;</span><div class="divider-line"></div>
+    </div>
+
+    <!-- ── READ ──────────────────────────────────────────────────────── -->
+    <section id="read" class="reveal-section" aria-labelledby="read-heading">
+      <div class="section-inner">
+        <header class="section-header">
+          <span class="section-label mono">06 / READ</span>
+          <h2 id="read-heading">Begin at the minute that will not let go.</h2>
+        </header>
+        <p class="read-sub">No one closes the loop. Someone still has to walk through it.</p>
+        <div class="read-grid">
+          <a href="[EXCERPT_LINK]" class="read-card">
+            <span class="read-card-label mono">EXCERPT</span>
+            <span class="read-card-title">Read an excerpt</span>
+            <span class="read-card-arrow" aria-hidden="true">&rarr;</span>
+          </a>
+          <a href="[BUY_LINK]" class="read-card read-card--primary">
+            <span class="read-card-label mono">BUY</span>
+            <span class="read-card-title">Buy the book</span>
+            <span class="read-card-arrow" aria-hidden="true">&rarr;</span>
+          </a>
+          <a href="[MAILING_LIST_LINK]" class="read-card">
+            <span class="read-card-label mono">LIST</span>
+            <span class="read-card-title">Join the mailing list</span>
+            <span class="read-card-arrow" aria-hidden="true">&rarr;</span>
+          </a>
+          <a href="[READERS_GUIDE_LINK]" class="read-card">
+            <span class="read-card-label mono">GUIDE</span>
+            <span class="read-card-title">Download the reader's guide</span>
+            <span class="read-card-arrow" aria-hidden="true">&rarr;</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <div class="signal-divider" aria-hidden="true">
+      <div class="divider-line"></div><span class="divider-glyph mono">&#9670;</span><div class="divider-line"></div>
+    </div>
+
+    <!-- ── AUTHOR'S NOTE ─────────────────────────────────────────────── -->
+    <section id="authors-note" class="reveal-section" aria-labelledby="note-heading">
+      <div class="section-inner">
+        <header class="section-header">
+          <span class="section-label mono">07 / AUTHOR'S NOTE</span>
+          <h2 id="note-heading" class="sr-only">Author's Note</h2>
+        </header>
+        <div class="note-content">
+          <p class="note-placeholder mono dim-text">[AUTHOR_NOTE_EXCERPT]</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer id="site-footer">
+    <div class="footer-inner">
+      <div class="footer-title">
+        <span class="footer-book-title">Liminal 6:17</span>
+        <span class="footer-author mono">A Novel by Elian Voigt</span>
+      </div>
+      <div class="footer-meta mono">
+        <p>&copy; 2026 Elian Voigt</p>
+        <p>ISBN: 9798259003224</p>
+        <p>Typeset in EB Garamond, JetBrains Mono, and Noto Serif Hebrew.</p>
+      </div>
+      <div class="footer-timestamp mono dim-text" aria-label="Live timestamp">
+        <span id="footer-timestamp">18:17:00</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Easter egg overlay -->
+  <div id="easter-egg" class="easter-egg" role="dialog" aria-modal="true" aria-labelledby="egg-label" aria-hidden="true">
+    <div class="egg-inner">
+      <button class="egg-close mono" id="egg-close-btn" aria-label="Close">&#215; close</button>
+      <div class="egg-content">
+        <p class="egg-timestamp mono" id="egg-label">06:17</p>
+        <pre class="egg-text mono">NOTE --- anchor: ARYA
+local mode: active
+common clock: suspended
+manual time: 06:17
+recursion depth: unknown
+
+"We step forward. The recursion begins."</pre>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
 </html>
