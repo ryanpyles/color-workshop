@@ -164,28 +164,37 @@ export function createEnvironment(scene) {
   let burstActive = false;
   let burstT = 0;
   const burstParticles = [];
-  const BURST_COUNT = 80;
+  const BURST_COUNT = 160;
 
   for (let i = 0; i < BURST_COUNT; i++) {
-    const geo = new THREE.SphereGeometry(0.05, 6, 6);
+    const size = i < 80 ? 0.06 : 0.03; // mix of large + small debris
+    const geo = new THREE.SphereGeometry(size, 6, 6);
     const mat = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,
       opacity: 0,
       blending: THREE.AdditiveBlending,
+      depthWrite: false,
     });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.visible = false;
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
+    const speed = i < 80
+      ? 0.06 + Math.random() * 0.10   // fast primary burst
+      : 0.02 + Math.random() * 0.04;  // slow drifting debris
     mesh.userData.vel = new THREE.Vector3(
       Math.sin(phi) * Math.cos(theta),
       Math.sin(phi) * Math.sin(theta),
       Math.cos(phi)
-    ).multiplyScalar(0.04 + Math.random() * 0.06);
+    ).multiplyScalar(speed);
     scene.add(mesh);
     burstParticles.push(mesh);
   }
+
+  // ── Shockwave rings (created dynamically on explode) ──────────────────
+  const activeShockwaves = [];
+  const shockwaveBaseGeo = new THREE.TorusGeometry(1, 0.04, 8, 100);
 
   // ── Target env color ─────────────────────────────────────────────────
   let targetColor = new THREE.Color(0x05000f);
@@ -229,6 +238,23 @@ export function createEnvironment(scene) {
         p.material.color.copy(color);
         p.material.opacity = 1;
         p.visible = true;
+      });
+
+      // Spawn two shockwave rings at slight angle offsets
+      [0, 0.15].forEach((delay, idx) => {
+        const mat = new THREE.MeshBasicMaterial({
+          color: color.clone(),
+          transparent: true,
+          opacity: 0.9,
+          blending: THREE.AdditiveBlending,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        });
+        const mesh = new THREE.Mesh(shockwaveBaseGeo.clone(), mat);
+        mesh.rotation.x = Math.PI / 2 + idx * 0.4;
+        mesh.rotation.z = idx * 0.6;
+        scene.add(mesh);
+        activeShockwaves.push({ mesh, t: -delay, maxT: 1.2 });
       });
     },
 
@@ -277,13 +303,33 @@ export function createEnvironment(scene) {
 
       // Burst animation
       if (burstActive) {
-        burstT += 0.02;
-        burstParticles.forEach(p => {
+        burstT += 0.018;
+        burstParticles.forEach((p, i) => {
+          if (!p.visible) return;
           p.position.addScaledVector(p.userData.vel, 1);
-          p.material.opacity = Math.max(0, 1 - burstT);
-          if (burstT >= 1) p.visible = false;
+          // primary burst fades fast, debris lingers
+          const fadeRate = i < 80 ? 1.0 : 0.55;
+          p.material.opacity = Math.max(0, 1 - burstT * fadeRate);
+          if (p.material.opacity <= 0) p.visible = false;
         });
-        if (burstT >= 1) burstActive = false;
+        if (burstT >= 1.8) burstActive = false;
+      }
+
+      // Shockwave ring animation
+      for (let i = activeShockwaves.length - 1; i >= 0; i--) {
+        const sw = activeShockwaves[i];
+        sw.t += 0.02;
+        if (sw.t < 0) continue; // delay not reached yet
+        const progress = sw.t / sw.maxT;
+        const scale = 1 + progress * 22;   // expands to ~23× radius
+        sw.mesh.scale.setScalar(scale);
+        sw.mesh.material.opacity = Math.max(0, 0.9 - progress * 1.1);
+        if (progress >= 1) {
+          scene.remove(sw.mesh);
+          sw.mesh.geometry.dispose();
+          sw.mesh.material.dispose();
+          activeShockwaves.splice(i, 1);
+        }
       }
     },
   };

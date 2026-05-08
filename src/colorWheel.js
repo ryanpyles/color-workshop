@@ -110,10 +110,16 @@ export function createColorWheel(scene) {
   }));
   wheelGroup.add(triMesh);
 
-  // ── Reflective center sphere ──────────────────────────────────────────
+  // ── Mix color center sphere ───────────────────────────────────────────
   const sphere = new THREE.Mesh(
     new THREE.SphereGeometry(INNER_R - 0.18, 64, 64),
-    new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.05, metalness: 0.95 })
+    new THREE.MeshStandardMaterial({
+      color: new THREE.Color(0x1a0033),
+      emissive: new THREE.Color(0x1a0033),
+      emissiveIntensity: 0.5,
+      roughness: 0.15,
+      metalness: 0.45,
+    })
   );
   sphere.userData.isMixSphere = true;
   wheelGroup.add(sphere);
@@ -129,7 +135,7 @@ export function createColorWheel(scene) {
   // 3D tilt for perspective
   wheelGroup.rotation.x = Math.PI * 0.18;
 
-  return { wheelGroup, segments };
+  return { wheelGroup, segments, mixSphere: sphere };
 }
 
 function addMarker(group, segIndex, radius, color, emissive, intensity) {

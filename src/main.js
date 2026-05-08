@@ -14,8 +14,10 @@ const state = {
   activeSlot: 0,
   mixedColor: new THREE.Color(),
   activeScheme: 'none',
-  baseHue: null,         // last wheel-clicked hue
-  schemeHues: [],        // current scheme hues (may include baseHue + derived)
+  baseHue: null,
+  schemeHues: [],
+  exploding: false,
+  explodeStart: 0,
 };
 
 // ── Renderer ───────────────────────────────────────────────────────────────
@@ -50,7 +52,7 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.in
 composer.addPass(bloom);
 
 // ── Wheel + Environment ────────────────────────────────────────────────────
-const { wheelGroup, segments } = createColorWheel(scene);
+const { wheelGroup, segments, mixSphere } = createColorWheel(scene);
 const env = createEnvironment(scene);
 
 // ── Lighting ───────────────────────────────────────────────────────────────
@@ -111,6 +113,13 @@ function updateMixPanel() {
   resultSwatch.style.background = hex(mix);
   resultSwatch.style.boxShadow  = `0 0 20px ${hex(mix)}90`;
   hexDisplay.textContent = hex(mix);
+
+  // Live-update the center orb to show the blend
+  if (mixSphere) {
+    mixSphere.material.color.copy(mix).multiplyScalar(0.55);
+    mixSphere.material.emissive.copy(mix);
+    mixSphere.material.emissiveIntensity = 0.45;
+  }
 }
 
 function updateLights() {
@@ -351,8 +360,14 @@ refreshSavedPalettes();
 
 // ── Action buttons ─────────────────────────────────────────────────────────
 document.getElementById('btn-mix').addEventListener('click', () => {
-  applyEnvColor(state.mixedColor);
-  env.triggerMixEffect(state.mixedColor);
+  // Orb explosion — env color change is delayed to sync with the peak
+  state.exploding = true;
+  state.explodeStart = clock.getElapsedTime();
+  const mixSnapshot = state.mixedColor.clone();
+  setTimeout(() => {
+    applyEnvColor(mixSnapshot);
+    env.triggerMixEffect(mixSnapshot);
+  }, 380);
 });
 
 document.getElementById('btn-reset').addEventListener('click', () => {
@@ -445,6 +460,20 @@ function animate() {
   pointA.position.z =  2 + Math.cos(t * 0.3) * 1.5;
   pointB.position.x =  5 + Math.cos(t * 0.35) * 1.5;
   pointB.position.z =  2 + Math.sin(t * 0.4) * 1.5;
+
+  // ── Orb explosion animation ────────────────────────────────────────
+  if (mixSphere && state.exploding) {
+    const et = t - state.explodeStart;
+    // Phase 1 (0–0.4s): grow + brighten
+    const growP  = Math.min(et / 0.4, 1);
+    // Phase 2 (0.4–0.75s): rebound back to normal
+    const recoilP = Math.max(0, Math.min((et - 0.4) / 0.35, 1));
+    const scale = 1 + growP * 0.9 - recoilP * 0.9;
+    mixSphere.scale.setScalar(Math.max(0.95, scale));
+    const emissive = growP * 2.2 - recoilP * 1.8;
+    mixSphere.material.emissiveIntensity = Math.max(0.45, emissive);
+    if (et > 0.8) state.exploding = false;
+  }
 
   // ── Segment material animation ─────────────────────────────────────
   const isSchemeOn = schemeActive();
