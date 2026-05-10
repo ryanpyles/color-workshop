@@ -6,7 +6,6 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { colorPsychology, getSchemeHues, SCHEMES } from './colorUtils.js';
 import { createColorWheel } from './colorWheel.js';
 import { createEnvironment } from './environment.js';
-import { savePalette, loadPalettes } from './supabase.js';
 
 // ── App state ──────────────────────────────────────────────────────────────
 const state = {
@@ -298,6 +297,7 @@ renderer.domElement.addEventListener('touchend', e => {
 }, { passive: false });
 
 // ── Saved palettes UI ──────────────────────────────────────────────────────
+const savedPalettes = [];
 const savedList  = document.getElementById('saved-list');
 const savedEmpty = document.getElementById('saved-empty');
 const saveToast  = document.getElementById('save-toast');
@@ -309,7 +309,7 @@ function showToast(msg = 'Palette saved!') {
 }
 
 function renderSavedPalettes(palettes) {
-  if (!palettes.length) {
+  if (!palettes || !palettes.length) {
     savedList.innerHTML = '<div id="saved-empty">None yet — save one below</div>';
     return;
   }
@@ -346,16 +346,10 @@ function renderSavedPalettes(palettes) {
   });
 }
 
-async function refreshSavedPalettes() {
-  try {
-    const palettes = await loadPalettes(12);
-    renderSavedPalettes(palettes);
-  } catch (e) {
-    console.error('Failed to load palettes', e);
-  }
+function refreshSavedPalettes() {
+  renderSavedPalettes([]);
 }
 
-// Load on startup
 refreshSavedPalettes();
 
 // ── Action buttons ─────────────────────────────────────────────────────────
@@ -386,28 +380,19 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   applyEnvColor(new THREE.Color(0x220033));
 });
 
-document.getElementById('btn-save').addEventListener('click', async () => {
-  const btn = document.getElementById('btn-save');
-  btn.classList.add('saving');
-  btn.textContent = 'Saving…';
-  try {
-    await savePalette({
-      colorA:     hex(state.slotColors[0]),
-      colorB:     hex(state.slotColors[1]),
-      colorMix:   hex(state.mixedColor),
-      scheme:     state.activeScheme,
-      schemeHues: state.schemeHues,
-      baseHue:    state.baseHue,
-    });
-    showToast('Palette saved!');
-    await refreshSavedPalettes();
-  } catch (e) {
-    showToast('Save failed — check console');
-    console.error(e);
-  } finally {
-    btn.classList.remove('saving');
-    btn.textContent = 'Save';
-  }
+document.getElementById('btn-save').addEventListener('click', () => {
+  const palette = {
+    id: Date.now(),
+    color_a:   hex(state.slotColors[0]),
+    color_b:   hex(state.slotColors[1]),
+    color_mix: hex(state.mixedColor),
+    scheme:    state.activeScheme,
+    base_hue:  state.baseHue,
+  };
+  savedPalettes.unshift(palette);
+  if (savedPalettes.length > 12) savedPalettes.pop();
+  renderSavedPalettes(savedPalettes);
+  showToast('Palette saved!');
 });
 
 document.getElementById('btn-randomize').addEventListener('click', () => {
