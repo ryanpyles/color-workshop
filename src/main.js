@@ -6,6 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { colorPsychology, getSchemeHues, SCHEMES } from './colorUtils.js';
 import { createColorWheel } from './colorWheel.js';
 import { createEnvironment } from './environment.js';
+import { createPentagonalPrism, MOODS, generateSuggestions } from './paletteMode.js';
 
 // ── App state ──────────────────────────────────────────────────────────────
 const state = {
@@ -17,6 +18,16 @@ const state = {
   schemeHues: [],
   exploding: false,
   explodeStart: 0,
+};
+
+// ── Palette builder state ──────────────────────────────────────────────────
+const palette = {
+  active:      false,
+  colors:      Array(5).fill(null),  // hex strings or null
+  activeSlot:  0,
+  activeMood:  null,
+  morphT:      0,   // 0 = sphere fully visible, 1 = prism fully visible
+  morphDir:    0,   // +1 or -1 while animating
 };
 
 // ── Renderer ───────────────────────────────────────────────────────────────
@@ -53,6 +64,10 @@ composer.addPass(bloom);
 // ── Wheel + Environment ────────────────────────────────────────────────────
 const { wheelGroup, segments, mixSphere } = createColorWheel(scene);
 const env = createEnvironment(scene);
+
+// ── Palette prism (added to wheel group so it inherits tilt + rotation) ───
+const { mesh: prismMesh, faceMaterials: prismMats } = createPentagonalPrism(1.1, 2.2);
+wheelGroup.add(prismMesh);
 
 // ── Lighting ───────────────────────────────────────────────────────────────
 scene.add(new THREE.AmbientLight(0xffffff, 0.3));
@@ -151,6 +166,138 @@ function showPsychology(hue, color) {
 function hidePsychology() {
   psychPanel.classList.remove('visible');
 }
+
+// ── Palette builder helpers ────────────────────────────────────────────────
+const pbPanel      = document.getElementById('palette-builder');
+const pbSlotEls    = document.querySelectorAll('.pb-slot');
+const pbMoodBtns   = document.querySelectorAll('.pb-mood-btn');
+const pbSuggestBtn = document.getElementById('pb-suggest');
+const pbApplyBtn   = document.getElementById('pb-apply');
+const pbClearBtn   = document.getElementById('pb-clear');
+const pbCloseBtn   = document.getElementById('pb-close');
+const pbSuggestEl  = document.getElementById('pb-suggestions');
+const btnCreate    = document.getElementById('btn-create-palette');
+
+function updatePrismFaces() {
+  palette.colors.forEach((hexStr, i) => {
+    const mat = prismMats[i];
+    if (hexStr) {
+      const c = new THREE.Color(hexStr);
+      mat.color.copy(c).multiplyScalar(0.3);
+      mat.emissive.copy(c);
+      mat.emissiveIntensity = 1.0;
+      mat.opacity = 0.92;
+    } else {
+      mat.color.set(0x0a0028);
+      mat.emissive.set(0x060018);
+      mat.emissiveIntensity = 0.5;
+      mat.opacity = 0.88;
+    }
+  });
+}
+
+function updatePbSlotUI() {
+  pbSlotEls.forEach((el, i) => {
+    const c = palette.colors[i];
+    el.classList.toggle('active', i === palette.activeSlot);
+    el.classList.toggle('filled', !!c);
+    el.style.background    = c || '';
+    el.style.boxShadow     = c ? `0 0 14px ${c}80` : '';
+    el.style.borderColor   = c ? `${c}cc` : '';
+    const num = el.querySelector('.pb-slot-num');
+    if (num) num.style.display = c ? 'none' : '';
+  });
+}
+
+function renderSuggestionsList(variations) {
+  pbSuggestEl.innerHTML = variations.map((v, vi) => `
+    <div class="pb-suggestion" data-vi="${vi}">
+      <span class="pb-sug-label">${v.label}</span>
+      <div class="pb-sug-dots">
+        ${v.colors.map(c => `<div class="pb-sug-dot" style="background:${c};box-shadow:0 0 6px ${c}70;"></div>`).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  pbSuggestEl.querySelectorAll('.pb-suggestion').forEach(el => {
+    el.addEventListener('click', () => {
+      const vi = parseInt(el.dataset.vi);
+      palette.colors = [...variations[vi].colors];
+      updatePrismFaces();
+      updatePbSlotUI();
+    });
+  });
+}
+
+function enterPaletteMode() {
+  palette.active   = true;
+  palette.morphDir = 1;
+  pbPanel.classList.add('open');
+  btnCreate.classList.add('palette-active');
+  btnCreate.textContent = 'Exit Palette';
+  document.getElementById('saved-panel').style.opacity = '0.2';
+  document.getElementById('saved-panel').style.pointerEvents = 'none';
+  updatePbSlotUI();
+}
+
+function exitPaletteMode() {
+  palette.active   = false;
+  palette.morphDir = -1;
+  pbPanel.classList.remove('open');
+  btnCreate.classList.remove('palette-active');
+  btnCreate.textContent = 'Create Palette';
+  document.getElementById('saved-panel').style.opacity = '';
+  document.getElementById('saved-panel').style.pointerEvents = '';
+}
+
+function applyPaletteToScene() {
+  const filled = palette.colors.filter(Boolean);
+  if (!filled.length) { showToast('Add colors first!'); return; }
+  const blend = new THREE.Color(0, 0, 0);
+  filled.forEach(h => blend.add(new THREE.Color(h)));
+  blend.multiplyScalar(1 / filled.length);
+  applyEnvColor(blend);
+  env.triggerMixEffect(blend);
+  showToast('Palette applied to scene!');
+}
+
+// Slot clicks
+pbSlotEls.forEach(el => {
+  el.addEventListener('click', () => {
+    palette.activeSlot = parseInt(el.dataset.slot);
+    updatePbSlotUI();
+  });
+});
+
+// Mood buttons
+pbMoodBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    palette.activeMood = btn.dataset.mood;
+    pbMoodBtns.forEach(b => b.classList.toggle('active', b === btn));
+  });
+});
+
+pbSuggestBtn.addEventListener('click', () => {
+  const key = palette.activeMood ?? Object.keys(MOODS)[0];
+  renderSuggestionsList(generateSuggestions(key));
+  document.getElementById('pb-sug-header').style.display = '';
+});
+
+pbApplyBtn.addEventListener('click', applyPaletteToScene);
+
+pbClearBtn.addEventListener('click', () => {
+  palette.colors = Array(5).fill(null);
+  updatePrismFaces();
+  updatePbSlotUI();
+  pbSuggestEl.innerHTML = '';
+});
+
+pbCloseBtn.addEventListener('click', exitPaletteMode);
+
+btnCreate.addEventListener('click', () => {
+  if (palette.active) exitPaletteMode();
+  else enterPaletteMode();
+});
 
 // ── Scheme palette swatches ────────────────────────────────────────────────
 function renderSchemePalette(schemeHues) {
@@ -251,6 +398,26 @@ renderer.domElement.addEventListener('click', e => {
 
   const hue = seg.userData.hue;
   const color = new THREE.Color().setHSL(hue, 0.9, 0.55);
+
+  // ── Palette builder mode ─────────────────────────────────────────────
+  if (palette.active) {
+    const slot = palette.activeSlot;
+    palette.colors[slot] = '#' + color.getHexString();
+    updatePrismFaces();
+    const next = palette.colors.findIndex((c, i) => i > slot && !c);
+    palette.activeSlot = next !== -1 ? next : palette.colors.findIndex(c => !c) ?? slot;
+    if (palette.activeSlot === -1) palette.activeSlot = slot;
+    updatePbSlotUI();
+    const t0 = performance.now();
+    const pulse = () => {
+      const p = (performance.now() - t0) / 300;
+      if (p < 1) { seg.scale.setScalar(1 + 0.2 * Math.sin(p * Math.PI)); requestAnimationFrame(pulse); }
+      else seg.scale.set(1, 1, 1);
+    };
+    pulse();
+    showPsychology(hue, color);
+    return;
+  }
 
   // Always assign to active slot
   state.slotColors[state.activeSlot].copy(color);
@@ -437,8 +604,29 @@ function animate() {
   const t = clock.getElapsedTime();
 
   controls.update();
-  wheelGroup.rotation.y += 0.0015;
+  wheelGroup.rotation.y += palette.active ? 0.0004 : 0.0015;
   env.update(t);
+
+  // ── Sphere ↔ prism morph ─────────────────────────────────────────────
+  if (palette.morphDir !== 0) {
+    palette.morphT = Math.max(0, Math.min(1, palette.morphT + palette.morphDir * 0.045));
+    // Ease in-out
+    const e = palette.morphT < 0.5
+      ? 2 * palette.morphT * palette.morphT
+      : 1 - Math.pow(-2 * palette.morphT + 2, 2) / 2;
+
+    mixSphere.material.opacity = 1 - e;
+    mixSphere.visible = e < 0.98;
+
+    const prismP = Math.max(0, (e - 0.3) / 0.7);
+    prismMesh.visible = prismP > 0.01;
+    prismMesh.scale.setScalar(prismP);
+
+    if (palette.morphT >= 1 || palette.morphT <= 0) palette.morphDir = 0;
+  }
+
+  // Prism slow spin
+  if (prismMesh.visible) prismMesh.rotation.y += 0.006;
 
   // Orbiting lights
   pointA.position.x = -5 + Math.sin(t * 0.4) * 1.5;

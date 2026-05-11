@@ -119,6 +119,8 @@ export function createColorWheel(scene) {
       emissiveIntensity: 0.5,
       roughness: 0.15,
       metalness: 0.45,
+      transparent: true,
+      opacity: 1.0,
     })
   );
   sphere.userData.isMixSphere = true;

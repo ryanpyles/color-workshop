@@ -263,6 +263,130 @@
         white-space: nowrap;
       }
       #save-toast.show { opacity: 1; }
+
+      /* ── Palette Builder Panel ──────────────────────────────────────── */
+      #palette-builder {
+        position: absolute; left: 28px; top: 50%;
+        transform: translateY(-50%) translateX(calc(-100% - 44px));
+        background: rgba(0,0,0,0.68); backdrop-filter: blur(22px);
+        border: 1px solid rgba(255,255,255,0.12); border-radius: 20px;
+        padding: 18px 16px; width: 240px;
+        max-height: 88vh; overflow-y: auto; overflow-x: hidden;
+        scrollbar-width: none;
+        transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+        pointer-events: all; z-index: 20;
+      }
+      #palette-builder::-webkit-scrollbar { display: none; }
+      #palette-builder.open {
+        transform: translateY(-50%) translateX(0);
+      }
+      .pb-header {
+        display: flex; align-items: center;
+        justify-content: space-between; margin-bottom: 14px;
+      }
+      .pb-title {
+        font-size: 0.72rem; letter-spacing: 0.2em;
+        text-transform: uppercase; color: rgba(255,255,255,0.72);
+      }
+      .pb-close {
+        background: none; border: none;
+        color: rgba(255,255,255,0.35); cursor: pointer;
+        font-size: 1rem; padding: 2px 6px; border-radius: 6px;
+        transition: color 0.2s;
+      }
+      .pb-close:hover { color: rgba(255,255,255,0.8); }
+      .pb-section-label {
+        font-size: 0.54rem; letter-spacing: 0.18em;
+        text-transform: uppercase; color: rgba(255,255,255,0.28);
+        margin: 14px 0 8px;
+      }
+      /* Slots */
+      #pb-slots {
+        display: flex; gap: 7px; justify-content: center;
+        margin-bottom: 7px;
+      }
+      .pb-slot {
+        width: 36px; height: 36px; border-radius: 50%;
+        border: 2px dashed rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.03);
+        cursor: pointer; transition: all 0.25s;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+      }
+      .pb-slot.active {
+        border-style: solid; border-color: rgba(255,255,255,0.75);
+        box-shadow: 0 0 16px rgba(255,255,255,0.18);
+      }
+      .pb-slot.filled { border-style: solid; }
+      .pb-slot-num {
+        font-size: 0.55rem; color: rgba(255,255,255,0.28);
+        pointer-events: none;
+      }
+      .pb-hint {
+        font-size: 0.6rem; color: rgba(255,255,255,0.25);
+        text-align: center; font-style: italic;
+        letter-spacing: 0.04em; margin-bottom: 4px;
+      }
+      /* Mood grid */
+      #pb-mood-grid {
+        display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;
+      }
+      .pb-mood-btn {
+        padding: 4px 10px; border-radius: 50px;
+        border: 1px solid rgba(255,255,255,0.13);
+        background: rgba(255,255,255,0.04);
+        color: rgba(255,255,255,0.45);
+        font-size: 0.6rem; letter-spacing: 0.06em;
+        cursor: pointer; transition: all 0.2s; white-space: nowrap;
+      }
+      .pb-mood-btn:hover {
+        background: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.3);
+        color: rgba(255,255,255,0.7);
+      }
+      .pb-mood-btn.active {
+        border-color: rgba(180,100,255,0.6);
+        color: rgba(200,160,255,0.9);
+        background: rgba(140,50,255,0.12);
+      }
+      /* Suggestions */
+      #pb-suggestions {
+        display: flex; flex-direction: column; gap: 7px; margin: 8px 0;
+      }
+      .pb-suggestion {
+        cursor: pointer; border-radius: 10px; padding: 8px 10px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.03); transition: all 0.2s;
+      }
+      .pb-suggestion:hover {
+        border-color: rgba(255,255,255,0.22);
+        background: rgba(255,255,255,0.08);
+      }
+      .pb-sug-label {
+        display: block; font-size: 0.55rem;
+        color: rgba(255,255,255,0.32); letter-spacing: 0.06em;
+        margin-bottom: 6px;
+      }
+      .pb-sug-dots {
+        display: flex; gap: 5px;
+      }
+      .pb-sug-dot {
+        width: 24px; height: 24px; border-radius: 50%;
+        border: 1.5px solid rgba(255,255,255,0.18); flex-shrink: 0;
+      }
+      /* Panel actions */
+      .pb-actions {
+        display: flex; gap: 7px; margin-top: 12px;
+      }
+      .pb-actions .btn { flex: 1; padding: 8px 10px; font-size: 0.62rem; }
+      /* Suggest btn full-width */
+      #pb-suggest { width: 100%; }
+      /* Create palette btn active state */
+      #btn-create-palette.palette-active {
+        border-color: rgba(180,100,255,0.5);
+        color: rgba(200,160,255,0.92);
+        background: rgba(140,50,255,0.12);
+      }
     </style>
   </head>
   <body>
@@ -276,6 +400,47 @@
       <div id="slot-indicator">
         <button class="slot-btn active" data-slot="0">Color A</button>
         <button class="slot-btn" data-slot="1">Color B</button>
+      </div>
+
+      <!-- Palette builder panel -->
+      <div id="palette-builder">
+        <div class="pb-header">
+          <span class="pb-title">Palette Builder</span>
+          <button class="pb-close" id="pb-close">✕</button>
+        </div>
+
+        <div class="pb-section-label">Your Colors</div>
+        <div id="pb-slots">
+          <div class="pb-slot active" data-slot="0"><span class="pb-slot-num">1</span></div>
+          <div class="pb-slot" data-slot="1"><span class="pb-slot-num">2</span></div>
+          <div class="pb-slot" data-slot="2"><span class="pb-slot-num">3</span></div>
+          <div class="pb-slot" data-slot="3"><span class="pb-slot-num">4</span></div>
+          <div class="pb-slot" data-slot="4"><span class="pb-slot-num">5</span></div>
+        </div>
+        <p class="pb-hint">Pick a slot · click the wheel</p>
+
+        <div class="pb-section-label">Generate by Mood</div>
+        <div id="pb-mood-grid">
+          <button class="pb-mood-btn" data-mood="calm">Calm</button>
+          <button class="pb-mood-btn" data-mood="energetic">Energetic</button>
+          <button class="pb-mood-btn" data-mood="romantic">Romantic</button>
+          <button class="pb-mood-btn" data-mood="professional">Professional</button>
+          <button class="pb-mood-btn" data-mood="playful">Playful</button>
+          <button class="pb-mood-btn" data-mood="natural">Natural</button>
+          <button class="pb-mood-btn" data-mood="mysterious">Mysterious</button>
+          <button class="pb-mood-btn" data-mood="warm">Warm</button>
+          <button class="pb-mood-btn" data-mood="luxurious">Luxurious</button>
+          <button class="pb-mood-btn" data-mood="ocean">Ocean</button>
+        </div>
+        <button class="btn" id="pb-suggest">Suggest Palettes</button>
+
+        <div class="pb-section-label" id="pb-sug-header" style="display:none;">Suggestions</div>
+        <div id="pb-suggestions"></div>
+
+        <div class="pb-actions">
+          <button class="btn primary" id="pb-apply">Apply to Scene</button>
+          <button class="btn" id="pb-clear">Clear</button>
+        </div>
       </div>
 
       <!-- Psychology panel -->
@@ -340,6 +505,7 @@
           <button class="btn" id="btn-reset">Reset</button>
           <button class="btn primary" id="btn-mix">Apply Mix</button>
           <button class="btn" id="btn-randomize">Random</button>
+          <button class="btn" id="btn-create-palette">Create Palette</button>
           <button class="btn save" id="btn-save">Save</button>
         </div>
 
