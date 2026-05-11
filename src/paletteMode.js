@@ -107,6 +107,18 @@ export const MOODS = {
   ocean:        { label: 'Ocean',        desc: 'Deep sea blues & seafoam',          colors: ['#006994','#0099cc','#00c5a8','#004f6e','#33bbdd'] },
 };
 
+// ── Cinematic / cultural palette references ────────────────────────────────
+export const CINEMATIC = {
+  kubrick:    { label: 'Kubrick',       sub: '2001 · The Shining',         colors: ['#b0bcc8','#cc3030','#181e2a','#e8dcc0','#243040'] },
+  wkw:        { label: 'Wong Kar-wai',  sub: 'In the Mood for Love',       colors: ['#c04018','#140804','#cc8020','#260608','#e09030'] },
+  brutalist:  { label: 'Brutalist',     sub: 'Raw concrete & steel',       colors: ['#909090','#c4c0b8','#282828','#ece8e0','#505050'] },
+  hermes:     { label: 'Hermès',        sub: 'Maison de luxe',             colors: ['#d05818','#7a3808','#e8b870','#280e04','#e07028'] },
+  kodachrome: { label: 'Kodachrome',    sub: '1935–2010 film stock',       colors: ['#e8b848','#b84020','#70a040','#d07030','#f0d878'] },
+  miyazaki:   { label: 'Miyazaki',      sub: 'Studio Ghibli wonder',       colors: ['#38a0c8','#70c038','#e8c030','#d86020','#b8e0e8'] },
+  nordic:     { label: 'Nordic Noir',   sub: 'Scandi atmosphere',          colors: ['#98a8b8','#182838','#d8e0e8','#283848','#506070'] },
+  godfather:  { label: 'The Godfather', sub: 'Gordon Willis noir',         colors: ['#140c04','#482810','#b89050','#200404','#806030'] },
+};
+
 // ── Suggestion generator — returns 3 variations of a mood ─────────────────
 export function generateSuggestions(moodKey) {
   const mood = MOODS[moodKey];

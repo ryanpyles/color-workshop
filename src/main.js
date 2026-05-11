@@ -6,7 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { colorPsychology, getSchemeHues, SCHEMES } from './colorUtils.js';
 import { createColorWheel } from './colorWheel.js';
 import { createEnvironment } from './environment.js';
-import { createPentagonalPrism, MOODS, generateSuggestions } from './paletteMode.js';
+import { createPentagonalPrism, MOODS, CINEMATIC, generateSuggestions } from './paletteMode.js';
 
 // ── App state ──────────────────────────────────────────────────────────────
 const state = {
@@ -41,7 +41,7 @@ container.appendChild(renderer.domElement);
 
 // ── Scene / Camera ─────────────────────────────────────────────────────────
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x000000, 0.035);
+scene.fog = new THREE.FogExp2(0x000000, 0.018);
 
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
 camera.position.set(0, 1.5, 9);
@@ -58,7 +58,7 @@ controls.minPolarAngle = Math.PI * 0.2;
 // ── Post-processing ────────────────────────────────────────────────────────
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.6, 0.4, 0.6);
+const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.30, 0.24, 0.78);
 composer.addPass(bloom);
 
 // ── Wheel + Environment ────────────────────────────────────────────────────
@@ -68,6 +68,42 @@ const env = createEnvironment(scene);
 // ── Palette prism (added to wheel group so it inherits tilt + rotation) ───
 const { mesh: prismMesh, faceMaterials: prismMats } = createPentagonalPrism(1.1, 2.2);
 wheelGroup.add(prismMesh);
+
+// ── Interaction state indicators ──────────────────────────────────────────
+const WRINGS = 24, WOUTER = 3.0;
+const ARC_SPAN = (Math.PI * 2) / WRINGS;
+
+// Thin arc that follows the hovered segment
+const hoverArc = new THREE.Mesh(
+  new THREE.TorusGeometry(WOUTER + 0.06, 0.038, 6, 48, ARC_SPAN),
+  new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  })
+);
+wheelGroup.add(hoverArc);
+
+// Small glowing spheres anchored to the outer ring showing slot A & B selection
+const slotIndicators = [0, 1].map(i => {
+  const m = new THREE.Mesh(
+    new THREE.SphereGeometry(0.09, 12, 12),
+    new THREE.MeshStandardMaterial({
+      emissive: new THREE.Color(i === 0 ? 0xff2200 : 0x0033ff),
+      emissiveIntensity: 1.8,
+      roughness: 0.1, metalness: 0.3,
+      transparent: true, opacity: 0,
+    })
+  );
+  wheelGroup.add(m);
+  return m;
+});
+
+// Harmony orbit connector lines drawn between scheme hue positions
+const harmonyLines = new THREE.Group();
+wheelGroup.add(harmonyLines);
+
+// Camera micro-drift state (triggered by Apply Mix)
+const camDrift = { active: false, t: 0, dx: 0, dy: 0 };
 
 // ── Lighting ───────────────────────────────────────────────────────────────
 scene.add(new THREE.AmbientLight(0xffffff, 0.3));
@@ -111,6 +147,7 @@ const psychDot     = document.getElementById('psych-dot');
 const psychName    = document.getElementById('psych-name');
 const psychCat     = document.getElementById('psych-category');
 const psychTraits  = document.getElementById('psych-traits');
+const critiqueEl   = document.getElementById('mix-critique');
 
 function hex(color) { return '#' + color.getHexString(); }
 
@@ -134,6 +171,10 @@ function updateMixPanel() {
     mixSphere.material.emissive.copy(mix);
     mixSphere.material.emissiveIntensity = 0.45;
   }
+
+  // Update slot ring indicators and palette critique
+  updateSlotIndicators();
+  if (critiqueEl) critiqueEl.textContent = critiqueMix(ca, cb);
 }
 
 function updateLights() {
@@ -143,10 +184,10 @@ function updateLights() {
 
 function applyEnvColor(color) {
   env.updateBaseColor(color);
-  scene.fog.color.copy(color).multiplyScalar(0.15);
+  scene.fog.color.copy(color).multiplyScalar(0.12);
   const hsl = {};
   color.getHSL(hsl);
-  bloom.strength = 0.4 + hsl.s * 0.8;
+  bloom.strength = Math.min(0.42, 0.20 + hsl.s * 0.32);
 }
 
 // ── Psychology panel ───────────────────────────────────────────────────────
@@ -294,10 +335,75 @@ pbClearBtn.addEventListener('click', () => {
 
 pbCloseBtn.addEventListener('click', exitPaletteMode);
 
+// Cinematic palette clicks
+document.querySelectorAll('.pb-cinematic-item').forEach(el => {
+  el.addEventListener('click', () => {
+    const key = el.dataset.key;
+    if (CINEMATIC[key]) {
+      palette.colors = [...CINEMATIC[key].colors];
+      updatePrismFaces();
+      updatePbSlotUI();
+    }
+  });
+});
+
 btnCreate.addEventListener('click', () => {
   if (palette.active) exitPaletteMode();
   else enterPaletteMode();
 });
+
+// ── 3D indicator helpers ───────────────────────────────────────────────────
+function updateSlotIndicators() {
+  state.slotColors.forEach((c, i) => {
+    const hsl = {};
+    c.getHSL(hsl);
+    const angle = hsl.h * Math.PI * 2;
+    const r = WOUTER + 0.42;
+    slotIndicators[i].position.set(Math.cos(angle) * r, Math.sin(angle) * r, 0);
+    slotIndicators[i].material.emissive.copy(c);
+    slotIndicators[i].material.color.copy(c).multiplyScalar(0.3);
+    slotIndicators[i].material.opacity = 1.0;
+  });
+}
+
+function updateHarmonyLines(schemeHues) {
+  harmonyLines.children.forEach(l => { l.geometry.dispose(); l.material.dispose(); });
+  harmonyLines.clear();
+  if (!schemeHues || schemeHues.length < 2) return;
+  const r = 2.3;
+  const pts = schemeHues.map(h => {
+    const a = h * Math.PI * 2;
+    return new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, 0);
+  });
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      const curve = new THREE.QuadraticBezierCurve3(pts[i], new THREE.Vector3(0, 0, 0.2), pts[j]);
+      const geo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(28));
+      const mat = new THREE.LineBasicMaterial({
+        color: new THREE.Color().setHSL(schemeHues[i], 0.85, 0.65),
+        transparent: true, opacity: 0.3,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      });
+      harmonyLines.add(new THREE.Line(geo, mat));
+    }
+  }
+}
+
+function critiqueMix(colorA, colorB) {
+  const ha = {}, hb = {};
+  colorA.getHSL(ha);
+  colorB.getHSL(hb);
+  const diff = Math.min(Math.abs(ha.h - hb.h), 1 - Math.abs(ha.h - hb.h));
+  const satAvg = (ha.s + hb.s) / 2;
+  const litDiff = Math.abs(ha.l - hb.l);
+  if (satAvg < 0.2)                return 'Muted — add saturation for depth';
+  if (diff < 0.04 && litDiff < 0.08) return 'Too similar — push contrast';
+  if (diff > 0.45 && diff < 0.55)  return 'Complementary tension — strong';
+  if (diff < 0.1)                  return 'Analogous — harmonious, low tension';
+  if (satAvg > 0.8 && diff > 0.2) return 'High energy — bold composition';
+  if (litDiff < 0.04)              return 'Try varying lightness for depth';
+  return 'Balanced composition';
+}
 
 // ── Scheme palette swatches ────────────────────────────────────────────────
 function renderSchemePalette(schemeHues) {
@@ -354,11 +460,12 @@ schemeBtns.forEach(btn => {
       clearSchemeHighlight();
       state.schemeHues = [];
       renderSchemePalette([]);
+      updateHarmonyLines([]);
     } else if (state.baseHue !== null) {
-      // Recompute scheme from last picked hue
       state.schemeHues = getSchemeHues(state.baseHue, state.activeScheme);
       applySchemeToWheel(state.schemeHues);
       renderSchemePalette(state.schemeHues);
+      updateHarmonyLines(state.schemeHues);
     }
   });
 });
@@ -382,14 +489,20 @@ renderer.domElement.addEventListener('mousemove', e => {
   const seg = intersectSegment(e);
   if (seg && seg.userData.isSegment) {
     seg.userData.hovered = true;
+    hoverArc.rotation.z = (seg.userData.hue * Math.PI * 2) - ARC_SPAN / 2;
+    hoverArc.userData.show = true;
     const color = new THREE.Color().setHSL(seg.userData.hue, 0.9, 0.55);
     showPsychology(seg.userData.hue, color);
   } else {
+    hoverArc.userData.show = false;
     hidePsychology();
   }
 });
 
-renderer.domElement.addEventListener('mouseleave', hidePsychology);
+renderer.domElement.addEventListener('mouseleave', () => {
+  hoverArc.userData.show = false;
+  hidePsychology();
+});
 
 renderer.domElement.addEventListener('click', e => {
   if (isDragging) return;
@@ -428,7 +541,7 @@ renderer.domElement.addEventListener('click', e => {
     state.schemeHues = getSchemeHues(hue, state.activeScheme);
     applySchemeToWheel(state.schemeHues);
     renderSchemePalette(state.schemeHues);
-    // Fill inactive slot with first non-base scheme hue
+    updateHarmonyLines(state.schemeHues);
     const partner = state.schemeHues.find(h => Math.abs(h - hue) > 0.02);
     if (partner !== undefined) {
       const otherSlot = 1 - state.activeSlot;
@@ -521,10 +634,14 @@ refreshSavedPalettes();
 
 // ── Action buttons ─────────────────────────────────────────────────────────
 document.getElementById('btn-mix').addEventListener('click', () => {
-  // Orb explosion — env color change is delayed to sync with the peak
   state.exploding = true;
   state.explodeStart = clock.getElapsedTime();
   const mixSnapshot = state.mixedColor.clone();
+  // Camera micro-drift — the world absorbs the color
+  camDrift.active = true;
+  camDrift.t = 0;
+  camDrift.dx = (Math.random() - 0.5) * 0.8;
+  camDrift.dy = (Math.random() - 0.5) * 0.4;
   setTimeout(() => {
     applyEnvColor(mixSnapshot);
     env.triggerMixEffect(mixSnapshot);
@@ -541,6 +658,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   schemeDesc.textContent = SCHEMES.none.desc;
   clearSchemeHighlight();
   renderSchemePalette([]);
+  updateHarmonyLines([]);
   hidePsychology();
   updateMixPanel();
   updateLights();
@@ -548,7 +666,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
 });
 
 document.getElementById('btn-save').addEventListener('click', () => {
-  const palette = {
+  const entry = {
     id: Date.now(),
     color_a:   hex(state.slotColors[0]),
     color_b:   hex(state.slotColors[1]),
@@ -556,7 +674,7 @@ document.getElementById('btn-save').addEventListener('click', () => {
     scheme:    state.activeScheme,
     base_hue:  state.baseHue,
   };
-  savedPalettes.unshift(palette);
+  savedPalettes.unshift(entry);
   if (savedPalettes.length > 12) savedPalettes.pop();
   renderSavedPalettes(savedPalettes);
   showToast('Palette saved!');
@@ -606,6 +724,19 @@ function animate() {
   controls.update();
   wheelGroup.rotation.y += palette.active ? 0.0004 : 0.0015;
   env.update(t);
+
+  // ── Camera micro-drift on Apply Mix ───────────────────────────────────
+  if (camDrift.active) {
+    camDrift.t = Math.min(1, camDrift.t + 0.016);
+    const ease = Math.sin(camDrift.t * Math.PI);
+    controls.target.set(camDrift.dx * ease, camDrift.dy * ease, 0);
+    if (camDrift.t >= 1) { controls.target.set(0, 0, 0); camDrift.active = false; }
+  }
+
+  // ── Hover arc smooth fade ─────────────────────────────────────────────
+  const arcTarget = hoverArc.userData.show ? 0.72 : 0;
+  hoverArc.material.opacity += (arcTarget - hoverArc.material.opacity) * 0.18;
+  hoverArc.visible = hoverArc.material.opacity > 0.01;
 
   // ── Sphere ↔ prism morph ─────────────────────────────────────────────
   if (palette.morphDir !== 0) {

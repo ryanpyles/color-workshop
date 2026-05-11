@@ -34,7 +34,7 @@ export function createEnvironment(scene) {
   scene.add(bgSphere);
 
   // ── Floating particles ───────────────────────────────────────────────
-  const PARTICLE_COUNT = 1200;
+  const PARTICLE_COUNT = 700;
   const pPositions = new Float32Array(PARTICLE_COUNT * 3);
   const pColors = new Float32Array(PARTICLE_COUNT * 3);
   const pSpeeds = new Float32Array(PARTICLE_COUNT);
@@ -117,17 +117,17 @@ export function createEnvironment(scene) {
 
   // ── Floating color orbs ──────────────────────────────────────────────
   const orbs = [];
-  const ORB_COUNT = 6;
+  const ORB_COUNT = 4;
   for (let i = 0; i < ORB_COUNT; i++) {
     const hue = i / ORB_COUNT;
     const orbColor = new THREE.Color().setHSL(hue, 0.9, 0.6);
-    const geo = new THREE.SphereGeometry(0.18 + Math.random() * 0.12, 16, 16);
+    const geo = new THREE.SphereGeometry(0.14 + Math.random() * 0.08, 14, 14);
     const mat = new THREE.MeshStandardMaterial({
       color: orbColor,
       emissive: orbColor,
-      emissiveIntensity: 1.2,
-      roughness: 0.1,
-      metalness: 0.2,
+      emissiveIntensity: 0.5,
+      roughness: 0.2,
+      metalness: 0.3,
     });
     const orb = new THREE.Mesh(geo, mat);
     const angle = (i / ORB_COUNT) * Math.PI * 2;
@@ -146,11 +146,11 @@ export function createEnvironment(scene) {
   // ── Reflection rings ─────────────────────────────────────────────────
   const rings = [];
   for (let i = 0; i < 3; i++) {
-    const rGeo = new THREE.TorusGeometry(2.5 + i * 1.2, 0.015, 8, 100);
+    const rGeo = new THREE.TorusGeometry(2.5 + i * 1.2, 0.007, 6, 80);
     const rMat = new THREE.MeshBasicMaterial({
       color: new THREE.Color().setHSL(i / 3, 0.8, 0.6),
       transparent: true,
-      opacity: 0.25,
+      opacity: 0.12,
       blending: THREE.AdditiveBlending,
     });
     const ring = new THREE.Mesh(rGeo, rMat);

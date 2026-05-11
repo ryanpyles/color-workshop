@@ -19,16 +19,16 @@
       /* ── Title ─────────────────────────────────────────────────────── */
       #title {
         position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
-        color: rgba(255,255,255,0.9);
-        font-size: 1.4rem; font-weight: 300; letter-spacing: 0.3em;
+        color: rgba(255,255,255,0.92);
+        font-size: 1.4rem; font-weight: 600; letter-spacing: 0.25em;
         text-transform: uppercase;
-        text-shadow: 0 0 30px rgba(255,255,255,0.3);
+        text-shadow: 0 0 30px rgba(255,255,255,0.25);
         white-space: nowrap;
       }
       #subtitle {
         position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
-        color: rgba(255,255,255,0.38); font-size: 0.7rem;
-        letter-spacing: 0.2em; text-transform: uppercase; white-space: nowrap;
+        color: rgba(255,255,255,0.42); font-size: 0.68rem;
+        letter-spacing: 0.1em; white-space: nowrap;
       }
 
       /* ── Slot selector (top-right) ─────────────────────────────────── */
@@ -116,8 +116,9 @@
       }
 
       #scheme-header {
-        font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
-        color: rgba(255,255,255,0.3); align-self: flex-start; margin-bottom: 2px;
+        font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase;
+        color: rgba(255,255,255,0.42); align-self: flex-start; margin-bottom: 2px;
+        font-weight: 500;
       }
 
       #scheme-buttons {
@@ -183,8 +184,13 @@
       .color-swatch:hover { transform: scale(1.1); }
       .color-swatch.active { border-color: rgba(255,255,255,0.8); }
       .color-label {
-        font-size: 0.58rem; color: rgba(255,255,255,0.45);
-        letter-spacing: 0.1em; text-align: center;
+        font-size: 0.6rem; color: rgba(255,255,255,0.55);
+        letter-spacing: 0.06em; text-align: center; font-weight: 500;
+      }
+      #mix-critique {
+        font-size: 0.6rem; color: rgba(255,255,255,0.38);
+        letter-spacing: 0.04em; font-style: italic; text-align: center;
+        min-height: 1em; transition: opacity 0.4s;
       }
       .sep { color: rgba(255,255,255,0.35); font-size: 1.2rem; font-weight: 100; padding-bottom: 16px; }
       #result-swatch {
@@ -381,6 +387,35 @@
       .pb-actions .btn { flex: 1; padding: 8px 10px; font-size: 0.62rem; }
       /* Suggest btn full-width */
       #pb-suggest { width: 100%; }
+      /* Cinematic palette references */
+      .pb-cinematic-grid {
+        display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px;
+      }
+      .pb-cinematic-item {
+        cursor: pointer; border-radius: 8px; padding: 7px 9px;
+        border: 1px solid rgba(255,255,255,0.07);
+        background: rgba(255,255,255,0.025); transition: all 0.2s;
+        display: flex; flex-direction: column; gap: 5px;
+      }
+      .pb-cinematic-item:hover {
+        border-color: rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.07);
+      }
+      .pb-cin-title {
+        display: flex; justify-content: space-between; align-items: baseline;
+      }
+      .pb-cin-name {
+        font-size: 0.62rem; color: rgba(255,255,255,0.7); font-weight: 500;
+        letter-spacing: 0.04em;
+      }
+      .pb-cin-sub {
+        font-size: 0.5rem; color: rgba(255,255,255,0.28); font-style: italic;
+      }
+      .pb-cin-dots { display: flex; gap: 4px; }
+      .pb-cin-dot {
+        width: 20px; height: 20px; border-radius: 4px;
+        border: 1px solid rgba(255,255,255,0.12); flex-shrink: 0;
+      }
       /* Create palette btn active state */
       #btn-create-palette.palette-active {
         border-color: rgba(180,100,255,0.5);
@@ -436,6 +471,74 @@
 
         <div class="pb-section-label" id="pb-sug-header" style="display:none;">Suggestions</div>
         <div id="pb-suggestions"></div>
+
+        <div class="pb-section-label">Reference Palettes</div>
+        <div class="pb-cinematic-grid">
+          <div class="pb-cinematic-item" data-key="kubrick">
+            <div class="pb-cin-title"><span class="pb-cin-name">Kubrick</span><span class="pb-cin-sub">2001 · The Shining</span></div>
+            <div class="pb-cin-dots">
+              <div class="pb-cin-dot" style="background:#b0bcc8;"></div><div class="pb-cin-dot" style="background:#cc3030;"></div>
+              <div class="pb-cin-dot" style="background:#181e2a;"></div><div class="pb-cin-dot" style="background:#e8dcc0;"></div>
+              <div class="pb-cin-dot" style="background:#243040;"></div>
+            </div>
+          </div>
+          <div class="pb-cinematic-item" data-key="wkw">
+            <div class="pb-cin-title"><span class="pb-cin-name">Wong Kar-wai</span><span class="pb-cin-sub">In the Mood for Love</span></div>
+            <div class="pb-cin-dots">
+              <div class="pb-cin-dot" style="background:#c04018;"></div><div class="pb-cin-dot" style="background:#140804;"></div>
+              <div class="pb-cin-dot" style="background:#cc8020;"></div><div class="pb-cin-dot" style="background:#260608;"></div>
+              <div class="pb-cin-dot" style="background:#e09030;"></div>
+            </div>
+          </div>
+          <div class="pb-cinematic-item" data-key="kodachrome">
+            <div class="pb-cin-title"><span class="pb-cin-name">Kodachrome</span><span class="pb-cin-sub">1935–2010 film stock</span></div>
+            <div class="pb-cin-dots">
+              <div class="pb-cin-dot" style="background:#e8b848;"></div><div class="pb-cin-dot" style="background:#b84020;"></div>
+              <div class="pb-cin-dot" style="background:#70a040;"></div><div class="pb-cin-dot" style="background:#d07030;"></div>
+              <div class="pb-cin-dot" style="background:#f0d878;"></div>
+            </div>
+          </div>
+          <div class="pb-cinematic-item" data-key="hermes">
+            <div class="pb-cin-title"><span class="pb-cin-name">Hermès</span><span class="pb-cin-sub">Maison de luxe</span></div>
+            <div class="pb-cin-dots">
+              <div class="pb-cin-dot" style="background:#d05818;"></div><div class="pb-cin-dot" style="background:#7a3808;"></div>
+              <div class="pb-cin-dot" style="background:#e8b870;"></div><div class="pb-cin-dot" style="background:#280e04;"></div>
+              <div class="pb-cin-dot" style="background:#e07028;"></div>
+            </div>
+          </div>
+          <div class="pb-cinematic-item" data-key="miyazaki">
+            <div class="pb-cin-title"><span class="pb-cin-name">Miyazaki</span><span class="pb-cin-sub">Studio Ghibli wonder</span></div>
+            <div class="pb-cin-dots">
+              <div class="pb-cin-dot" style="background:#38a0c8;"></div><div class="pb-cin-dot" style="background:#70c038;"></div>
+              <div class="pb-cin-dot" style="background:#e8c030;"></div><div class="pb-cin-dot" style="background:#d86020;"></div>
+              <div class="pb-cin-dot" style="background:#b8e0e8;"></div>
+            </div>
+          </div>
+          <div class="pb-cinematic-item" data-key="godfather">
+            <div class="pb-cin-title"><span class="pb-cin-name">The Godfather</span><span class="pb-cin-sub">Gordon Willis noir</span></div>
+            <div class="pb-cin-dots">
+              <div class="pb-cin-dot" style="background:#140c04;"></div><div class="pb-cin-dot" style="background:#482810;"></div>
+              <div class="pb-cin-dot" style="background:#b89050;"></div><div class="pb-cin-dot" style="background:#200404;"></div>
+              <div class="pb-cin-dot" style="background:#806030;"></div>
+            </div>
+          </div>
+          <div class="pb-cinematic-item" data-key="nordic">
+            <div class="pb-cin-title"><span class="pb-cin-name">Nordic Noir</span><span class="pb-cin-sub">Scandi atmosphere</span></div>
+            <div class="pb-cin-dots">
+              <div class="pb-cin-dot" style="background:#98a8b8;"></div><div class="pb-cin-dot" style="background:#182838;"></div>
+              <div class="pb-cin-dot" style="background:#d8e0e8;"></div><div class="pb-cin-dot" style="background:#283848;"></div>
+              <div class="pb-cin-dot" style="background:#506070;"></div>
+            </div>
+          </div>
+          <div class="pb-cinematic-item" data-key="brutalist">
+            <div class="pb-cin-title"><span class="pb-cin-name">Brutalist</span><span class="pb-cin-sub">Raw concrete & steel</span></div>
+            <div class="pb-cin-dots">
+              <div class="pb-cin-dot" style="background:#909090;"></div><div class="pb-cin-dot" style="background:#c4c0b8;"></div>
+              <div class="pb-cin-dot" style="background:#282828;"></div><div class="pb-cin-dot" style="background:#ece8e0;"></div>
+              <div class="pb-cin-dot" style="background:#505050;"></div>
+            </div>
+          </div>
+        </div>
 
         <div class="pb-actions">
           <button class="btn primary" id="pb-apply">Apply to Scene</button>
@@ -500,6 +603,7 @@
             <div id="hex-display">#7f10ff</div>
           </div>
         </div>
+        <div id="mix-critique"></div>
 
         <div id="controls">
           <button class="btn" id="btn-reset">Reset</button>
