@@ -33,44 +33,71 @@ export function createEnvironment(scene) {
   const bgSphere = new THREE.Mesh(bgGeo, bgMat);
   scene.add(bgSphere);
 
-  // ── Floating particles ───────────────────────────────────────────────
-  const PARTICLE_COUNT = 700;
+  // ── Floating particles — clustered for spatial intentionality ────────
+  const PARTICLE_COUNT = 560;
   const pPositions = new Float32Array(PARTICLE_COUNT * 3);
-  const pColors = new Float32Array(PARTICLE_COUNT * 3);
-  const pSpeeds = new Float32Array(PARTICLE_COUNT);
-  const pPhases = new Float32Array(PARTICLE_COUNT);
+  const pColors    = new Float32Array(PARTICLE_COUNT * 3);
+  const pSpeeds    = new Float32Array(PARTICLE_COUNT);
+  const pPhases    = new Float32Array(PARTICLE_COUNT);
 
+  // 5 cluster centres — particles concentrate here with dead zones between
+  const CLUSTER_CENTERS = [
+    [ 8,  5, -10], [-9,  3,  -7], [ 7, -4,  8],
+    [-6,  7,  6],  [ 2, -8,  -5],
+  ];
   for (let i = 0; i < PARTICLE_COUNT; i++) {
-    const r = 6 + Math.random() * 18;
+    const cc = CLUSTER_CENTERS[Math.floor(Math.random() * CLUSTER_CENTERS.length)];
+    const spread = 3.5 + Math.random() * 6.5;
     const theta = Math.random() * Math.PI * 2;
-    const phi = Math.acos(2 * Math.random() - 1);
-    pPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-    pPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-    pPositions[i * 3 + 2] = r * Math.cos(phi);
+    const phi   = Math.acos(2 * Math.random() - 1);
+    pPositions[i * 3]     = cc[0] + Math.sin(phi) * Math.cos(theta) * spread;
+    pPositions[i * 3 + 1] = cc[1] + Math.sin(phi) * Math.sin(theta) * spread;
+    pPositions[i * 3 + 2] = cc[2] + Math.cos(phi) * spread;
     const hue = Math.random();
-    const c = new THREE.Color().setHSL(hue, 0.9, 0.65);
-    pColors[i * 3] = c.r;
+    const lum = 0.5 + Math.random() * 0.35;
+    const c = new THREE.Color().setHSL(hue, 0.85, lum);
+    pColors[i * 3]     = c.r;
     pColors[i * 3 + 1] = c.g;
     pColors[i * 3 + 2] = c.b;
-    pSpeeds[i] = 0.2 + Math.random() * 0.6;
+    pSpeeds[i] = 0.15 + Math.random() * 0.5;
     pPhases[i] = Math.random() * Math.PI * 2;
   }
 
   const pGeo = new THREE.BufferGeometry();
   pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions.slice(), 3));
-  pGeo.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
-
+  pGeo.setAttribute('color',    new THREE.BufferAttribute(pColors, 3));
   const pMat = new THREE.PointsMaterial({
-    size: 0.08,
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.7,
+    size: 0.065, vertexColors: true,
+    transparent: true, opacity: 0.55,
     sizeAttenuation: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
+    blending: THREE.AdditiveBlending, depthWrite: false,
   });
   const particles = new THREE.Points(pGeo, pMat);
   scene.add(particles);
+
+  // Bright accent "stars" — sparse, larger, pure-hue
+  const STAR_COUNT = 18;
+  const sPosArr = new Float32Array(STAR_COUNT * 3);
+  const sColArr = new Float32Array(STAR_COUNT * 3);
+  for (let i = 0; i < STAR_COUNT; i++) {
+    const r = 10 + Math.random() * 12;
+    const th = Math.random() * Math.PI * 2;
+    const ph = Math.acos(2 * Math.random() - 1);
+    sPosArr[i*3]   = r * Math.sin(ph) * Math.cos(th);
+    sPosArr[i*3+1] = r * Math.sin(ph) * Math.sin(th);
+    sPosArr[i*3+2] = r * Math.cos(ph);
+    const sc = new THREE.Color().setHSL(Math.random(), 1, 0.75);
+    sColArr[i*3] = sc.r; sColArr[i*3+1] = sc.g; sColArr[i*3+2] = sc.b;
+  }
+  const sGeo = new THREE.BufferGeometry();
+  sGeo.setAttribute('position', new THREE.Float32BufferAttribute(sPosArr, 3));
+  sGeo.setAttribute('color',    new THREE.Float32BufferAttribute(sColArr, 3));
+  scene.add(new THREE.Points(sGeo, new THREE.PointsMaterial({
+    size: 0.18, vertexColors: true,
+    transparent: true, opacity: 0.8,
+    sizeAttenuation: true,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  })));
 
   // Store original positions
   const origPositions = pPositions.slice();

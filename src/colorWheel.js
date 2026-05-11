@@ -34,12 +34,15 @@ export function createColorWheel(scene) {
     geo.translate(0, 0, -depth / 2);
 
     const color = new THREE.Color().setHSL(hue, 0.95, 0.55);
-    const mat = new THREE.MeshStandardMaterial({
+    const mat = new THREE.MeshPhysicalMaterial({
       color: color.clone(),
       emissive: color.clone(),
       emissiveIntensity: 0,
-      roughness: 0.25,
-      metalness: 0.4,
+      roughness: 0.14,
+      metalness: 0.55,
+      clearcoat: 0.9,
+      clearcoatRoughness: 0.06,
+      reflectivity: 0.8,
     });
 
     const mesh = new THREE.Mesh(geo, mat);
@@ -102,25 +105,34 @@ export function createColorWheel(scene) {
   }
   triGeo.setAttribute('color', new THREE.BufferAttribute(vcols, 3));
 
+  // Inner triangle kept as subtle spectral reference — very low opacity
   const triMesh = new THREE.Mesh(triGeo, new THREE.MeshStandardMaterial({
     vertexColors: true,
-    roughness: 0.2,
-    metalness: 0.3,
+    roughness: 0.1,
+    metalness: 0.2,
+    transparent: true,
+    opacity: 0.09,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
     side: THREE.DoubleSide,
   }));
   wheelGroup.add(triMesh);
 
   // ── Mix color center sphere ───────────────────────────────────────────
+  // Crystal sphere — polished gem with clearcoat
   const sphere = new THREE.Mesh(
     new THREE.SphereGeometry(INNER_R - 0.18, 64, 64),
-    new THREE.MeshStandardMaterial({
-      color: new THREE.Color(0x1a0033),
+    new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0x03000a),
       emissive: new THREE.Color(0x1a0033),
-      emissiveIntensity: 0.5,
-      roughness: 0.15,
-      metalness: 0.45,
+      emissiveIntensity: 0.7,
+      roughness: 0.0,
+      metalness: 0.12,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.0,
+      reflectivity: 0.95,
       transparent: true,
-      opacity: 1.0,
+      opacity: 0.92,
     })
   );
   sphere.userData.isMixSphere = true;

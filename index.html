@@ -18,17 +18,17 @@
 
       /* ── Title ─────────────────────────────────────────────────────── */
       #title {
-        position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
-        color: rgba(255,255,255,0.92);
-        font-size: 1.4rem; font-weight: 600; letter-spacing: 0.25em;
+        position: absolute; top: 32px; left: 50%; transform: translateX(-50%);
+        color: rgba(255,255,255,0.88);
+        font-size: 2.1rem; font-weight: 700; letter-spacing: 0.42em;
         text-transform: uppercase;
-        text-shadow: 0 0 30px rgba(255,255,255,0.25);
+        text-shadow: 0 0 60px rgba(255,255,255,0.14);
         white-space: nowrap;
       }
       #subtitle {
-        position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
-        color: rgba(255,255,255,0.42); font-size: 0.68rem;
-        letter-spacing: 0.1em; white-space: nowrap;
+        position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+        color: rgba(255,255,255,0.28); font-size: 0.65rem;
+        letter-spacing: 0.18em; white-space: nowrap; font-weight: 300;
       }
 
       /* ── Slot selector (top-right) ─────────────────────────────────── */
@@ -110,8 +110,8 @@
       /* ── Scheme selector ────────────────────────────────────────────── */
       #scheme-panel {
         display: flex; flex-direction: column; align-items: center; gap: 8px;
-        background: rgba(0,0,0,0.4); backdrop-filter: blur(14px);
-        border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
+        background: rgba(2,0,8,0.65); backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.10); border-radius: 16px;
         padding: 12px 18px;
       }
 
@@ -171,9 +171,10 @@
       /* ── Mix panel ──────────────────────────────────────────────────── */
       #mix-preview {
         display: flex; align-items: center; gap: 14px;
-        background: rgba(0,0,0,0.45); backdrop-filter: blur(16px);
-        border: 1px solid rgba(255,255,255,0.12); border-radius: 20px;
-        padding: 14px 22px;
+        background: rgba(3,0,10,0.75); backdrop-filter: blur(28px) saturate(1.4);
+        border: 1px solid rgba(255,255,255,0.18);
+        box-shadow: 0 8px 48px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.07);
+        border-radius: 20px; padding: 14px 22px;
       }
       .color-slot { display: flex; flex-direction: column; align-items: center; gap: 7px; }
       .color-swatch {
@@ -214,7 +215,11 @@
         cursor: pointer; transition: all 0.2s; backdrop-filter: blur(8px);
       }
       .btn:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.4); }
-      .btn.primary { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.38); }
+      .btn.primary {
+        background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.45);
+        color: rgba(255,255,255,0.95); font-weight: 500;
+        box-shadow: 0 0 24px rgba(255,255,255,0.06);
+      }
       .btn.save { border-color: rgba(255,220,100,0.35); color: rgba(255,220,100,0.85); }
       .btn.save:hover { background: rgba(255,220,100,0.12); border-color: rgba(255,220,100,0.6); }
       .btn.saving { opacity: 0.5; pointer-events: none; }

@@ -105,6 +105,17 @@ wheelGroup.add(harmonyLines);
 // Camera micro-drift state (triggered by Apply Mix)
 const camDrift = { active: false, t: 0, dx: 0, dy: 0 };
 
+// Color-pick flash — briefly floods scene with the selected hue
+const colorFlash = { active: false, t: 0 };
+
+function triggerColorReaction(color) {
+  colorFlash.active = true;
+  colorFlash.t = 0;
+  // Immediate environment tint
+  env.updateBaseColor(color);
+  scene.fog.color.copy(color).multiplyScalar(0.12);
+}
+
 // ── Lighting ───────────────────────────────────────────────────────────────
 scene.add(new THREE.AmbientLight(0xffffff, 0.3));
 
@@ -566,6 +577,7 @@ renderer.domElement.addEventListener('click', e => {
   updateMixPanel();
   updateLights();
   applyEnvColor(color);
+  triggerColorReaction(color);
   showPsychology(hue, color);
 });
 
@@ -731,6 +743,20 @@ function animate() {
     const ease = Math.sin(camDrift.t * Math.PI);
     controls.target.set(camDrift.dx * ease, camDrift.dy * ease, 0);
     if (camDrift.t >= 1) { controls.target.set(0, 0, 0); camDrift.active = false; }
+  }
+
+  // ── Color-pick flash — scene absorbs every hue click ─────────────────
+  if (colorFlash.active) {
+    colorFlash.t = Math.min(1, colorFlash.t + 0.038);
+    const ease = Math.pow(1 - colorFlash.t, 1.8);
+    pointA.intensity = 3 + ease * 11;
+    pointB.intensity = 3 + ease * 11;
+    bloom.strength   = Math.min(0.75, bloom.strength + ease * 0.025);
+    if (colorFlash.t >= 1) {
+      pointA.intensity = 3;
+      pointB.intensity = 3;
+      colorFlash.active = false;
+    }
   }
 
   // ── Hover arc smooth fade ─────────────────────────────────────────────
