@@ -421,13 +421,125 @@
         width: 20px; height: 20px; border-radius: 4px;
         border: 1px solid rgba(255,255,255,0.12); flex-shrink: 0;
       }
-      /* Create palette btn active state */
+      /* ── Create palette btn active state */
       #btn-create-palette.palette-active {
         border-color: rgba(180,100,255,0.5);
         color: rgba(200,160,255,0.92);
         background: rgba(140,50,255,0.12);
       }
-    </style>
+
+      /* ── Mobile bottom sheet drag handle ───────────────────────────────── */
+      #palette-builder::before {
+        content: '';
+        display: none;
+        width: 36px; height: 4px;
+        border-radius: 2px;
+        background: rgba(255,255,255,0.22);
+        margin: 0 auto 14px;
+      }
+
+      /* ══════════════════════════════════════════════════════════════════════
+         RESPONSIVE — tablet (≤ 768px) and phone (≤ 600px)
+         ══════════════════════════════════════════════════════════════════════ */
+
+      /* Tablet: soften the layout without full overhaul */
+      @media (max-width: 768px) {
+        #title { font-size: 1.5rem; letter-spacing: 0.28em; top: 20px; }
+        #subtitle { top: 60px; font-size: 0.58rem; }
+
+        #saved-panel { display: none; }
+
+        #bottom-panel {
+          left: 16px; right: 16px; bottom: 16px;
+          transform: none;
+          width: auto;
+          gap: 8px;
+        }
+
+        #scheme-buttons { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+        #scheme-buttons::-webkit-scrollbar { display: none; }
+        .scheme-btn { flex-shrink: 0; }
+
+        #scheme-desc { max-width: 100%; }
+
+        #controls { flex-wrap: wrap; justify-content: center; gap: 7px; }
+      }
+
+      /* Phone: full compact mode */
+      @media (max-width: 600px) {
+        /* ── Header ──────────────────────────────────────────────────────── */
+        #title {
+          font-size: 1rem; letter-spacing: 0.2em; top: 14px;
+        }
+        #subtitle { display: none; }
+
+        /* ── Slot buttons ────────────────────────────────────────────────── */
+        #slot-indicator { top: 12px; right: 12px; gap: 5px; }
+        .slot-btn { padding: 5px 11px; font-size: 0.6rem; }
+
+        /* ── Hide hover-only + secondary panels ──────────────────────────── */
+        #psych-panel { display: none; }
+
+        /* ── Bottom panel ─────────────────────────────────────────────────── */
+        #bottom-panel {
+          left: 10px; right: 10px; bottom: 10px;
+          transform: none;
+          width: auto;
+          gap: 6px;
+          align-items: stretch;
+        }
+
+        /* ── Scheme panel ─────────────────────────────────────────────────── */
+        #scheme-panel { padding: 8px 10px; gap: 5px; align-items: stretch; }
+        #scheme-header { display: none; }
+        #scheme-desc   { display: none; }
+        #scheme-palette { display: none; }
+        #scheme-buttons {
+          flex-wrap: nowrap; overflow-x: auto;
+          scrollbar-width: none; gap: 4px;
+          justify-content: flex-start;
+        }
+        #scheme-buttons::-webkit-scrollbar { display: none; }
+        .scheme-btn { padding: 4px 9px; font-size: 0.58rem; flex-shrink: 0; }
+
+        /* ── Mix panel ────────────────────────────────────────────────────── */
+        #mix-preview { padding: 10px 14px; gap: 8px; justify-content: center; }
+        .color-swatch { width: 38px; height: 38px; }
+        .color-swatch:hover { transform: none; }   /* disable hover scale on touch */
+        #result-swatch { width: 46px; height: 46px; }
+        #mix-critique { display: none; }
+        .sep { font-size: 1rem; padding-bottom: 10px; }
+
+        /* ── Controls bar ────────────────────────────────────────────────── */
+        #controls { flex-wrap: wrap; justify-content: center; gap: 5px; }
+        .btn { padding: 7px 12px; font-size: 0.6rem; }
+
+        /* ── Palette builder — bottom sheet ──────────────────────────────── */
+        #palette-builder {
+          left: 0; right: 0;
+          bottom: 0; top: auto;
+          width: 100%;
+          max-height: 75vh;
+          border-radius: 20px 20px 0 0;
+          /* close: slid below viewport */
+          transform: translateY(110%);
+          padding: 6px 16px 24px;
+          transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        #palette-builder::before { display: block; }
+        #palette-builder.open { transform: translateY(0); }
+
+        /* Larger touch targets inside palette builder */
+        .pb-slot { width: 44px; height: 44px; }
+        .pb-mood-btn { padding: 6px 12px; font-size: 0.62rem; }
+        .pb-sug-dot { width: 28px; height: 28px; }
+        .pb-cin-dot { width: 22px; height: 22px; }
+        .pb-actions .btn { padding: 10px 12px; }
+
+        /* ── Toast position ──────────────────────────────────────────────── */
+        #save-toast { top: auto; bottom: 100px; }
+      }
+</style>
   </head>
   <body>
     <div id="canvas-container"></div>

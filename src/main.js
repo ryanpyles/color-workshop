@@ -581,11 +581,21 @@ renderer.domElement.addEventListener('click', e => {
   showPsychology(hue, color);
 });
 
-// Touch support
+// Touch support — only fire click on genuine taps (not orbit drags)
+let touchStartPos = { x: 0, y: 0 };
+renderer.domElement.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  touchStartPos = { x: t.clientX, y: t.clientY };
+}, { passive: true });
 renderer.domElement.addEventListener('touchend', e => {
-  e.preventDefault();
+  if (e.changedTouches.length !== 1) return;
   const t = e.changedTouches[0];
-  renderer.domElement.dispatchEvent(new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY }));
+  const dx = t.clientX - touchStartPos.x;
+  const dy = t.clientY - touchStartPos.y;
+  if (Math.sqrt(dx * dx + dy * dy) > 12) return; // was a drag, not a tap
+  e.preventDefault();
+  isDragging = false;
+  renderer.domElement.dispatchEvent(new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY, bubbles: true }));
 }, { passive: false });
 
 // ── Saved palettes UI ──────────────────────────────────────────────────────
