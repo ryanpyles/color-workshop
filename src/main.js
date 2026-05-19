@@ -6,7 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { colorPsychology, getSchemeHues, SCHEMES } from './colorUtils.js';
 import { createColorWheel } from './colorWheel.js';
 import { createEnvironment } from './environment.js';
-import { createPentagonalPrism, MOODS, CINEMATIC, generateSuggestions } from './paletteMode.js';
+import { createStarPrism, MOODS, CINEMATIC, generateSuggestions } from './paletteMode.js';
 
 // ── App state ──────────────────────────────────────────────────────────────
 const state = {
@@ -49,7 +49,7 @@ camera.position.set(0, 1.5, 9);
 // ── Orbit Controls ─────────────────────────────────────────────────────────
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = 0.06;
+controls.dampingFactor = 0.09;
 controls.minDistance = 4;
 controls.maxDistance = 18;
 controls.maxPolarAngle = Math.PI * 0.72;
@@ -65,9 +65,9 @@ composer.addPass(bloom);
 const { wheelGroup, segments, mixSphere } = createColorWheel(scene);
 const env = createEnvironment(scene);
 
-// ── Palette prism (added to wheel group so it inherits tilt + rotation) ───
-const { mesh: prismMesh, faceMaterials: prismMats } = createPentagonalPrism(1.1, 2.2);
-wheelGroup.add(prismMesh);
+// ── Palette star (added to wheel group so it inherits tilt + rotation) ────
+const { group: starGroup, armMaterials: starArmMats } = createStarPrism(1.25, 0.48, 0.52);
+wheelGroup.add(starGroup);
 
 // ── Interaction state indicators ──────────────────────────────────────────
 const WRINGS = 24, WOUTER = 3.0;
@@ -232,18 +232,18 @@ const btnCreate    = document.getElementById('btn-create-palette');
 
 function updatePrismFaces() {
   palette.colors.forEach((hexStr, i) => {
-    const mat = prismMats[i];
+    const mat = starArmMats[i];
     if (hexStr) {
       const c = new THREE.Color(hexStr);
       mat.color.copy(c).multiplyScalar(0.3);
       mat.emissive.copy(c);
-      mat.emissiveIntensity = 1.0;
+      mat.emissiveIntensity = 1.2;
       mat.opacity = 0.92;
     } else {
-      mat.color.set(0x0a0028);
-      mat.emissive.set(0x060018);
-      mat.emissiveIntensity = 0.5;
-      mat.opacity = 0.88;
+      mat.color.set(0x080020);
+      mat.emissive.set(0x040010);
+      mat.emissiveIntensity = 0.4;
+      mat.opacity = 0.90;
     }
   });
 }
@@ -652,8 +652,8 @@ document.getElementById('btn-mix').addEventListener('click', () => {
   // Camera micro-drift — the world absorbs the color
   camDrift.active = true;
   camDrift.t = 0;
-  camDrift.dx = (Math.random() - 0.5) * 0.8;
-  camDrift.dy = (Math.random() - 0.5) * 0.4;
+  camDrift.dx = (Math.random() - 0.5) * 0.22;
+  camDrift.dy = (Math.random() - 0.5) * 0.11;
   setTimeout(() => {
     applyEnvColor(mixSnapshot);
     env.triggerMixEffect(mixSnapshot);
@@ -734,12 +734,12 @@ function animate() {
   const t = clock.getElapsedTime();
 
   controls.update();
-  wheelGroup.rotation.y += palette.active ? 0.0004 : 0.0015;
+  wheelGroup.rotation.y += palette.active ? 0.0002 : 0.0007;
   env.update(t);
 
   // ── Camera micro-drift on Apply Mix ───────────────────────────────────
   if (camDrift.active) {
-    camDrift.t = Math.min(1, camDrift.t + 0.016);
+    camDrift.t = Math.min(1, camDrift.t + 0.010);
     const ease = Math.sin(camDrift.t * Math.PI);
     controls.target.set(camDrift.dx * ease, camDrift.dy * ease, 0);
     if (camDrift.t >= 1) { controls.target.set(0, 0, 0); camDrift.active = false; }
@@ -775,15 +775,15 @@ function animate() {
     mixSphere.material.opacity = 1 - e;
     mixSphere.visible = e < 0.98;
 
-    const prismP = Math.max(0, (e - 0.3) / 0.7);
-    prismMesh.visible = prismP > 0.01;
-    prismMesh.scale.setScalar(prismP);
+    const starP = Math.max(0, (e - 0.3) / 0.7);
+    starGroup.visible = starP > 0.01;
+    starGroup.scale.setScalar(starP);
 
     if (palette.morphT >= 1 || palette.morphT <= 0) palette.morphDir = 0;
   }
 
-  // Prism slow spin
-  if (prismMesh.visible) prismMesh.rotation.y += 0.006;
+  // Star slow spin
+  if (starGroup.visible) starGroup.rotation.y += 0.004;
 
   // Orbiting lights
   pointA.position.x = -5 + Math.sin(t * 0.4) * 1.5;

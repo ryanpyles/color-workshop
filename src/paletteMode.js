@@ -1,96 +1,82 @@
 import * as THREE from 'three';
 
-// ── Pentagonal prism with 5 independently-coloured face groups ─────────────
-export function createPentagonalPrism(radius = 1.1, height = 2.2) {
-  const n = 5;
-  const positions = [];
-  const normals   = [];
-  const uvs       = [];
-  const indices   = [];
+// ── Five-pointed star with 5 independently-coloured arms ───────────────────
+export function createStarPrism(outerR = 1.25, innerR = 0.48, height = 0.52) {
+  const N = 5;
+  const group = new THREE.Group();
+  const armMaterials = [];
 
-  // Side faces — each face gets its own 4 vertices so normals & groups are clean
-  for (let i = 0; i < n; i++) {
-    const a0 = (i / n) * Math.PI * 2 - Math.PI / 2;
-    const a1 = ((i + 1) / n) * Math.PI * 2 - Math.PI / 2;
-    const x0 = Math.cos(a0) * radius, z0 = Math.sin(a0) * radius;
-    const x1 = Math.cos(a1) * radius, z1 = Math.sin(a1) * radius;
+  for (let i = 0; i < N; i++) {
+    const tipAngle   = (i / N) * Math.PI * 2 - Math.PI / 2;
+    const leftAngle  = tipAngle - Math.PI / N;
+    const rightAngle = tipAngle + Math.PI / N;
 
-    const base = positions.length / 3;
-    positions.push(
-      x0, -height / 2, z0,
-      x1, -height / 2, z1,
-      x1,  height / 2, z1,
-      x0,  height / 2, z0,
-    );
+    const shape = new THREE.Shape();
+    shape.moveTo(Math.cos(leftAngle)  * innerR, Math.sin(leftAngle)  * innerR);
+    shape.lineTo(Math.cos(tipAngle)   * outerR, Math.sin(tipAngle)   * outerR);
+    shape.lineTo(Math.cos(rightAngle) * innerR, Math.sin(rightAngle) * innerR);
+    shape.closePath();
 
-    const midA = (a0 + a1) * 0.5;
-    const nx = Math.cos(midA), nz = Math.sin(midA);
-    for (let v = 0; v < 4; v++) normals.push(nx, 0, nz);
-    uvs.push(0, 0, 1, 0, 1, 1, 0, 1);
-    indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: height,
+      bevelEnabled: true,
+      bevelThickness: 0.014,
+      bevelSize: 0.020,
+      bevelSegments: 3,
+    });
+    geo.translate(0, 0, -height / 2);
+
+    const mat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0x080020),
+      emissive: new THREE.Color(0x040010),
+      emissiveIntensity: 0.4,
+      roughness: 0.04,
+      metalness: 0.4,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.0,
+      transparent: true,
+      opacity: 0.90,
+    });
+    armMaterials.push(mat);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    group.add(mesh);
   }
 
-  // Top cap (fan from first vertex)
-  const topBase = positions.length / 3;
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2 - Math.PI / 2;
-    positions.push(Math.cos(a) * radius, height / 2, Math.sin(a) * radius);
-    normals.push(0, 1, 0);
-    uvs.push(0.5 + Math.cos(a) * 0.5, 0.5 + Math.sin(a) * 0.5);
+  // Center pentagon body — connects arm bases seamlessly
+  const pentShape = new THREE.Shape();
+  for (let i = 0; i < N; i++) {
+    const a = (i + 0.5) / N * Math.PI * 2 - Math.PI / 2;
+    const x = Math.cos(a) * innerR;
+    const y = Math.sin(a) * innerR;
+    if (i === 0) pentShape.moveTo(x, y);
+    else pentShape.lineTo(x, y);
   }
-  for (let i = 1; i < n - 1; i++) indices.push(topBase, topBase + i, topBase + i + 1);
+  pentShape.closePath();
 
-  // Bottom cap
-  const botBase = positions.length / 3;
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2 - Math.PI / 2;
-    positions.push(Math.cos(a) * radius, -height / 2, Math.sin(a) * radius);
-    normals.push(0, -1, 0);
-    uvs.push(0.5 + Math.cos(a) * 0.5, 0.5 + Math.sin(a) * 0.5);
-  }
-  for (let i = 1; i < n - 1; i++) indices.push(botBase, botBase + i + 1, botBase + i);
-
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geo.setAttribute('normal',   new THREE.Float32BufferAttribute(normals,   3));
-  geo.setAttribute('uv',       new THREE.Float32BufferAttribute(uvs,       2));
-  geo.setIndex(indices);
-
-  const capCount = (n - 2) * 3;
-  for (let i = 0; i < n; i++) geo.addGroup(i * 6, 6, i);        // 5 side groups
-  geo.addGroup(n * 6,            capCount, n);                   // top cap → mat[5]
-  geo.addGroup(n * 6 + capCount, capCount, n);                   // bottom cap → mat[5]
-
-  // Per-face materials (unlit dark crystal default)
-  const faceMaterials = Array.from({ length: n }, () =>
-    new THREE.MeshStandardMaterial({
-      color:            new THREE.Color(0x0a0028),
-      emissive:         new THREE.Color(0x060018),
-      emissiveIntensity: 0.5,
-      transparent:      true,
-      opacity:          0.88,
-      roughness:        0.05,
-      metalness:        0.55,
-      side:             THREE.DoubleSide,
-    })
-  );
-
-  const capMat = new THREE.MeshStandardMaterial({
-    color:            new THREE.Color(0x050012),
-    emissive:         new THREE.Color(0x020008),
-    emissiveIntensity: 0.25,
-    transparent:      true,
-    opacity:          0.6,
-    roughness:        0.2,
-    metalness:        0.7,
+  const pentGeo = new THREE.ExtrudeGeometry(pentShape, {
+    depth: height,
+    bevelEnabled: false,
   });
+  pentGeo.translate(0, 0, -height / 2);
 
-  const mesh = new THREE.Mesh(geo, [...faceMaterials, capMat]);
-  mesh.visible = false;
-  mesh.scale.setScalar(0);
-  mesh.castShadow = true;
+  group.add(new THREE.Mesh(pentGeo, new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(0x020008),
+    emissive: new THREE.Color(0x010005),
+    emissiveIntensity: 0.2,
+    roughness: 0.0,
+    metalness: 0.5,
+    clearcoat: 1.0,
+    transparent: true,
+    opacity: 0.85,
+  })));
 
-  return { mesh, faceMaterials };
+  // Orient star flat in the wheel plane
+  group.rotation.x = Math.PI / 2;
+  group.visible = false;
+  group.scale.setScalar(0);
+
+  return { group, armMaterials };
 }
 
 // ── Mood palette data ──────────────────────────────────────────────────────
