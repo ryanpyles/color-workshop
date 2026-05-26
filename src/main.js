@@ -721,6 +721,11 @@ const schemeToggleBtn = document.getElementById('scheme-toggle-btn');
 const schemeCollapsible = document.getElementById('scheme-collapsible');
 const schemeActiveDisplay = document.getElementById('scheme-active-display');
 
+// Start collapsed on mobile (CSS rule only applies at ≤600px, so safe to set class)
+if (window.innerWidth <= 600 && schemeCollapsible) {
+  schemeCollapsible.classList.add('collapsed');
+}
+
 if (schemeToggleBtn) {
   schemeToggleBtn.addEventListener('click', () => {
     const isOpen = schemeToggleBtn.classList.contains('open');

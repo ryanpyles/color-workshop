@@ -545,13 +545,14 @@
         /* Swatch edit hint always slightly visible on touch (no hover) */
         .swatch-hint { color: rgba(255,255,255,0.35) !important; }
 
-        /* Scheme toggle visible, scheme collapsible starts closed on mobile */
+        /* Scheme toggle visible + collapsible rule scoped to mobile only */
         #scheme-toggle-btn { display: flex; }
         #scheme-header {
           display: flex; justify-content: space-between;
           align-items: center; width: 100%;
         }
         #scheme-header-text { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.42); font-weight: 500; }
+        #scheme-collapsible.collapsed { max-height: 0; opacity: 0; pointer-events: none; }
 
         /* Bigger Apply Mix button on mobile */
         #btn-mix { flex: 1 1 100%; order: -1; padding: 11px 20px; font-size: 0.72rem; }
@@ -612,9 +613,8 @@
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   overflow: hidden;
   transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s;
-  max-height: 200px; opacity: 1;
+  max-height: 300px; opacity: 1;
 }
-#scheme-collapsible.collapsed { max-height: 0; opacity: 0; pointer-events: none; }
 
 /* ── Mix panel — better result display ─────────────────────────────────── */
 #result-area { display: flex; flex-direction: column; align-items: center; gap: 3px; }
@@ -778,7 +778,7 @@
               <span class="chevron">›</span>
             </button>
           </div>
-          <div id="scheme-collapsible" class="collapsed">
+          <div id="scheme-collapsible">
           <div id="scheme-buttons">
             <button class="scheme-btn active" data-scheme="none">Free</button>
             <button class="scheme-btn" data-scheme="mono">Mono</button>
