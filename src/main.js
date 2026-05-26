@@ -45,6 +45,7 @@ scene.fog = new THREE.FogExp2(0x000000, 0.018);
 
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
 camera.position.set(0, 1.5, 9);
+if (window.innerWidth <= 600) camera.position.set(0, 1.2, 7);
 
 // ── Orbit Controls ─────────────────────────────────────────────────────────
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -54,6 +55,7 @@ controls.minDistance = 4;
 controls.maxDistance = 18;
 controls.maxPolarAngle = Math.PI * 0.72;
 controls.minPolarAngle = Math.PI * 0.2;
+if (window.innerWidth <= 600) { controls.minDistance = 3; controls.maxDistance = 12; }
 
 // ── Post-processing ────────────────────────────────────────────────────────
 const composer = new EffectComposer(renderer);
@@ -457,8 +459,35 @@ slotBtns.forEach(btn => {
     swatchB.classList.toggle('active', state.activeSlot === 1);
   });
 });
-swatchA.addEventListener('click', () => slotBtns[0].click());
-swatchB.addEventListener('click', () => slotBtns[1].click());
+const pickerA = document.getElementById('color-picker-a');
+const pickerB = document.getElementById('color-picker-b');
+
+function openPicker(picker, color) {
+  picker.value = '#' + color.getHexString();
+  picker.click();
+}
+
+swatchA.addEventListener('click', () => { slotBtns[0].click(); openPicker(pickerA, state.slotColors[0]); });
+swatchB.addEventListener('click', () => { slotBtns[1].click(); openPicker(pickerB, state.slotColors[1]); });
+
+function applyPickedColor(hexVal, slot) {
+  state.slotColors[slot].set(hexVal);
+  const hsl = {};
+  state.slotColors[slot].getHSL(hsl);
+  state.baseHue = hsl.h;
+  updateMixPanel();
+  updateLights();
+  applyEnvColor(state.slotColors[slot]);
+  triggerColorReaction(state.slotColors[slot]);
+  if (state.activeScheme !== 'none') {
+    state.schemeHues = getSchemeHues(state.baseHue, state.activeScheme);
+    applySchemeToWheel(state.schemeHues);
+    renderSchemePalette(state.schemeHues);
+    updateHarmonyLines(state.schemeHues);
+  }
+}
+pickerA.addEventListener('input', e => { state.activeSlot = 0; applyPickedColor(e.target.value, 0); });
+pickerB.addEventListener('input', e => { state.activeSlot = 1; applyPickedColor(e.target.value, 1); });
 
 // ── Scheme buttons ─────────────────────────────────────────────────────────
 schemeBtns.forEach(btn => {
@@ -653,6 +682,65 @@ function refreshSavedPalettes() {
 }
 
 refreshSavedPalettes();
+
+// ── Hue quick-pick strip ────────────────────────────────────────────────────
+const hueStrip = document.getElementById('hue-strip');
+const HUE_DOTS = 12;
+const hueDots = [];
+for (let i = 0; i < HUE_DOTS; i++) {
+  const h = i / HUE_DOTS;
+  const c = new THREE.Color().setHSL(h, 0.88, 0.55);
+  const hex6 = '#' + c.getHexString();
+  const dot = document.createElement('div');
+  dot.className = 'hue-dot';
+  dot.style.background = hex6;
+  dot.style.boxShadow = `0 0 7px ${hex6}55`;
+  dot.dataset.hue = h;
+  dot.addEventListener('click', () => {
+    const color = new THREE.Color().setHSL(h, 0.88, 0.55);
+    state.slotColors[state.activeSlot].copy(color);
+    state.baseHue = h;
+    updateMixPanel();
+    updateLights();
+    applyEnvColor(color);
+    triggerColorReaction(color);
+    if (state.activeScheme !== 'none') {
+      state.schemeHues = getSchemeHues(h, state.activeScheme);
+      applySchemeToWheel(state.schemeHues);
+      renderSchemePalette(state.schemeHues);
+      updateHarmonyLines(state.schemeHues);
+    }
+    hueDots.forEach((d, di) => d.classList.toggle('active-hue', di === i));
+  });
+  hueStrip.appendChild(dot);
+  hueDots.push(dot);
+}
+
+// ── Scheme panel collapse (mobile) ─────────────────────────────────────────
+const schemeToggleBtn = document.getElementById('scheme-toggle-btn');
+const schemeCollapsible = document.getElementById('scheme-collapsible');
+const schemeActiveDisplay = document.getElementById('scheme-active-display');
+
+if (schemeToggleBtn) {
+  schemeToggleBtn.addEventListener('click', () => {
+    const isOpen = schemeToggleBtn.classList.contains('open');
+    schemeToggleBtn.classList.toggle('open', !isOpen);
+    schemeToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+    schemeCollapsible.classList.toggle('collapsed', isOpen);
+  });
+}
+
+// Update active scheme display name when scheme changes
+function updateSchemeDisplay(schemeName) {
+  if (schemeActiveDisplay) schemeActiveDisplay.textContent = schemeName;
+}
+
+// Sync scheme active display name to toggle button
+schemeBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (schemeActiveDisplay) schemeActiveDisplay.textContent = btn.textContent.trim();
+  });
+});
 
 // ── Action buttons ─────────────────────────────────────────────────────────
 document.getElementById('btn-mix').addEventListener('click', () => {

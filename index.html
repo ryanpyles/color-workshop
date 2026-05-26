@@ -491,7 +491,6 @@
 
         /* ── Scheme panel ─────────────────────────────────────────────────── */
         #scheme-panel { padding: 8px 10px; gap: 5px; align-items: stretch; }
-        #scheme-header { display: none; }
         #scheme-desc   { display: none; }
         #scheme-palette { display: none; }
         #scheme-buttons {
@@ -538,7 +537,88 @@
 
         /* ── Toast position ──────────────────────────────────────────────── */
         #save-toast { top: auto; bottom: 100px; }
+
+        /* Larger touch-friendly hue dots */
+        .hue-dot { width: 27px; height: 27px; }
+        #hue-strip { gap: 4px; }
+
+        /* Swatch edit hint always slightly visible on touch (no hover) */
+        .swatch-hint { color: rgba(255,255,255,0.35) !important; }
+
+        /* Scheme toggle visible, scheme collapsible starts closed on mobile */
+        #scheme-toggle-btn { display: flex; }
+        #scheme-header {
+          display: flex; justify-content: space-between;
+          align-items: center; width: 100%;
+        }
+        #scheme-header-text { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.42); font-weight: 500; }
+
+        /* Bigger Apply Mix button on mobile */
+        #btn-mix { flex: 1 1 100%; order: -1; padding: 11px 20px; font-size: 0.72rem; }
+        #controls { flex-wrap: wrap; justify-content: center; gap: 5px; }
       }
+
+/* ── Swatch edit affordance ─────────────────────────────────────────────── */
+.color-swatch { position: relative; }
+.swatch-hint {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; color: rgba(255,255,255,0.0);
+  transition: color 0.2s; pointer-events: none;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+.color-swatch:hover .swatch-hint { color: rgba(255,255,255,0.85); }
+
+/* ── Hue quick-pick strip ───────────────────────────────────────────────── */
+#hue-strip {
+  display: flex; gap: 5px; justify-content: center;
+  padding: 2px 4px; flex-wrap: nowrap;
+}
+.hue-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.18);
+  cursor: pointer; flex-shrink: 0;
+  transition: transform 0.12s, box-shadow 0.15s;
+}
+.hue-dot:hover { transform: scale(1.22); }
+.hue-dot:active { transform: scale(0.95); }
+.hue-dot.active-hue {
+  border-color: rgba(255,255,255,0.85);
+  box-shadow: 0 0 10px rgba(255,255,255,0.4);
+  transform: scale(1.18);
+}
+
+/* ── Color name label under result ──────────────────────────────────────── */
+#mix-label {
+  font-size: 0.55rem; color: rgba(255,255,255,0.3);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  text-align: center; margin-top: 2px;
+}
+
+/* ── Scheme collapsible ─────────────────────────────────────────────────── */
+#scheme-toggle-btn {
+  display: none;
+  background: none; border: none;
+  color: rgba(255,255,255,0.55);
+  font-size: 0.7rem; letter-spacing: 0.1em;
+  cursor: pointer; pointer-events: all;
+  align-items: center; gap: 6px;
+  padding: 0;
+}
+#scheme-toggle-btn .chevron { transition: transform 0.25s; display: inline-block; }
+#scheme-toggle-btn.open .chevron { transform: rotate(90deg); }
+
+#scheme-collapsible {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s;
+  max-height: 200px; opacity: 1;
+}
+#scheme-collapsible.collapsed { max-height: 0; opacity: 0; pointer-events: none; }
+
+/* ── Mix panel — better result display ─────────────────────────────────── */
+#result-area { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.color-label .edit-hint { font-size: 0.5rem; color: rgba(255,255,255,0.25); letter-spacing: 0.04em; }
 </style>
   </head>
   <body>
@@ -683,11 +763,22 @@
       <!-- Save toast -->
       <div id="save-toast">Palette saved!</div>
 
+      <!-- Hidden native color pickers for swatch taps -->
+      <input type="color" id="color-picker-a" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;tabindex=-1">
+      <input type="color" id="color-picker-b" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;tabindex=-1">
+
       <!-- Bottom: scheme + mix + buttons -->
       <div id="bottom-panel">
 
         <div id="scheme-panel">
-          <div id="scheme-header">Color Harmony Scheme</div>
+          <div id="scheme-header">
+            <span id="scheme-header-text">Harmony</span>
+            <button id="scheme-toggle-btn" aria-expanded="false">
+              <span id="scheme-active-display">Free</span>
+              <span class="chevron">›</span>
+            </button>
+          </div>
+          <div id="scheme-collapsible" class="collapsed">
           <div id="scheme-buttons">
             <button class="scheme-btn active" data-scheme="none">Free</button>
             <button class="scheme-btn" data-scheme="mono">Mono</button>
@@ -702,25 +793,33 @@
           </div>
           <div id="scheme-desc">Explore freely — no harmony scheme applied.</div>
           <div id="scheme-palette"></div>
+          </div><!-- /scheme-collapsible -->
         </div>
 
         <div id="mix-preview">
           <div class="color-slot">
-            <div class="color-swatch active" id="swatch-a" style="background:#ff2200;"></div>
-            <div class="color-label">A</div>
+            <div class="color-swatch active" id="swatch-a" style="background:#ff2200;">
+              <span class="swatch-hint">✎</span>
+            </div>
+            <div class="color-label">A <span class="edit-hint">· tap</span></div>
           </div>
           <span class="sep">+</span>
           <div class="color-slot">
-            <div class="color-swatch" id="swatch-b" style="background:#0033ff;"></div>
-            <div class="color-label">B</div>
+            <div class="color-swatch" id="swatch-b" style="background:#0033ff;">
+              <span class="swatch-hint">✎</span>
+            </div>
+            <div class="color-label">B <span class="edit-hint">· tap</span></div>
           </div>
           <span class="sep">→</span>
-          <div class="color-slot">
+          <div id="result-area">
             <div id="result-swatch" style="background:#7f10ff;"></div>
             <div id="hex-display">#7f10ff</div>
+            <div id="mix-label">Mix</div>
           </div>
         </div>
         <div id="mix-critique"></div>
+
+        <div id="hue-strip" role="group" aria-label="Quick hue selector"></div>
 
         <div id="controls">
           <button class="btn" id="btn-reset">Reset</button>
