@@ -176,7 +176,7 @@
         box-shadow: 0 8px 48px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.07);
         border-radius: 20px; padding: 14px 22px;
       }
-      .color-slot { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+      .color-slot { display: flex; flex-direction: column; align-items: center; gap: 5px; }
       .color-swatch {
         width: 50px; height: 50px; border-radius: 50%;
         border: 2px solid rgba(255,255,255,0.22); cursor: pointer;
@@ -188,6 +188,32 @@
         font-size: 0.6rem; color: rgba(255,255,255,0.55);
         letter-spacing: 0.06em; text-align: center; font-weight: 500;
       }
+      .slot-hex {
+        font-size: 0.55rem; color: rgba(255,255,255,0.3);
+        letter-spacing: 0.08em; font-family: monospace; text-align: center;
+        cursor: pointer; transition: color 0.2s; padding: 2px 5px;
+        border-radius: 4px;
+      }
+      .slot-hex:hover { color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.08); }
+
+      /* ── Contrast badge ─────────────────────────────────────────────── */
+      #contrast-badge {
+        display: flex; flex-direction: column; align-items: center; gap: 3px;
+        padding: 6px 10px; border-radius: 10px;
+        background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+        min-width: 54px;
+      }
+      #contrast-ratio-val {
+        font-size: 0.85rem; font-weight: 600; font-family: monospace;
+        color: rgba(255,255,255,0.85); letter-spacing: 0.02em;
+      }
+      #contrast-level-badge {
+        font-size: 0.5rem; letter-spacing: 0.12em; text-transform: uppercase;
+        font-weight: 600; padding: 1px 5px; border-radius: 3px;
+        background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5);
+      }
+      #contrast-label { font-size: 0.48rem; color: rgba(255,255,255,0.25); letter-spacing: 0.1em; }
+
       #mix-critique {
         font-size: 0.6rem; color: rgba(255,255,255,0.38);
         letter-spacing: 0.04em; font-style: italic; text-align: center;
@@ -202,9 +228,153 @@
       #hex-display {
         font-size: 0.65rem; color: rgba(255,255,255,0.38);
         letter-spacing: 0.12em; font-family: monospace; text-align: center;
+        cursor: pointer; padding: 2px 6px; border-radius: 4px;
+        transition: color 0.2s, background 0.2s;
+      }
+      #hex-display:hover { color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.08); }
+
+      /* ── Export panel ───────────────────────────────────────────────── */
+      #export-panel {
+        position: fixed; left: 0; right: 0; bottom: 0;
+        background: rgba(4,0,14,0.92); backdrop-filter: blur(30px) saturate(1.5);
+        border-top: 1px solid rgba(255,255,255,0.14);
+        border-radius: 22px 22px 0 0;
+        padding: 0 0 env(safe-area-inset-bottom);
+        z-index: 100; pointer-events: all;
+        transform: translateY(100%);
+        transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+        max-height: 80vh; display: flex; flex-direction: column;
+      }
+      #export-panel.open { transform: translateY(0); }
+      #export-panel::before {
+        content: ''; display: block; width: 40px; height: 4px;
+        border-radius: 2px; background: rgba(255,255,255,0.2);
+        margin: 12px auto 0;
+      }
+      #ep-header {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 20px 0; flex-shrink: 0;
+      }
+      .ep-title {
+        font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+        color: rgba(255,255,255,0.72); font-weight: 600; flex: 1;
+      }
+      #ep-close {
+        background: none; border: none; color: rgba(255,255,255,0.35);
+        cursor: pointer; font-size: 1rem; padding: 4px 8px; border-radius: 6px;
+        transition: color 0.2s;
+      }
+      #ep-close:hover { color: rgba(255,255,255,0.8); }
+
+      /* Tabs */
+      #ep-tabs {
+        display: flex; gap: 0; padding: 10px 20px 0; flex-shrink: 0;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+      .ep-tab {
+        padding: 7px 14px; border: none; background: none;
+        color: rgba(255,255,255,0.35); font-size: 0.65rem; letter-spacing: 0.1em;
+        text-transform: uppercase; cursor: pointer; border-bottom: 2px solid transparent;
+        margin-bottom: -1px; transition: all 0.2s;
+      }
+      .ep-tab:hover { color: rgba(255,255,255,0.65); }
+      .ep-tab.active {
+        color: rgba(255,255,255,0.9); border-bottom-color: rgba(255,255,255,0.6);
       }
 
-      /* ── Buttons ────────────────────────────────────────────────────── */
+      /* Content area */
+      #ep-body { flex: 1; overflow-y: auto; padding: 16px 20px 20px; scrollbar-width: none; }
+      #ep-body::-webkit-scrollbar { display: none; }
+
+      /* Brand scale strip */
+      #ep-brand-strip {
+        display: flex; gap: 4px; margin-bottom: 14px; border-radius: 10px; overflow: hidden;
+      }
+      .ep-brand-swatch {
+        flex: 1; height: 48px; cursor: pointer; position: relative;
+        transition: flex 0.2s;
+      }
+      .ep-brand-swatch:hover { flex: 1.6; }
+      .ep-brand-label {
+        position: absolute; bottom: 3px; left: 0; right: 0;
+        text-align: center; font-size: 0.42rem; letter-spacing: 0.06em;
+        color: rgba(0,0,0,0.5); font-weight: 600; pointer-events: none;
+        mix-blend-mode: multiply;
+      }
+
+      /* Export source selector */
+      #ep-source {
+        display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap;
+      }
+      .ep-src {
+        padding: 4px 12px; border-radius: 50px; font-size: 0.6rem;
+        letter-spacing: 0.08em; cursor: pointer;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.45);
+        transition: all 0.2s;
+      }
+      .ep-src.active {
+        border-color: rgba(255,255,255,0.5); color: rgba(255,255,255,0.9);
+        background: rgba(255,255,255,0.1);
+      }
+
+      /* Code block */
+      #ep-code-wrap { position: relative; }
+      #ep-code {
+        background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px; padding: 14px 16px; font-size: 0.65rem;
+        font-family: 'Courier New', monospace; color: rgba(255,255,255,0.72);
+        line-height: 1.65; white-space: pre; overflow-x: auto;
+        scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent;
+        max-height: 200px; overflow-y: auto;
+      }
+      #ep-copy {
+        position: absolute; top: 8px; right: 8px;
+        padding: 4px 10px; border-radius: 6px; font-size: 0.6rem;
+        letter-spacing: 0.08em; border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7);
+        cursor: pointer; transition: all 0.2s;
+      }
+      #ep-copy:hover { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.95); }
+      #ep-copy.copied { background: rgba(74,222,128,0.18); border-color: rgba(74,222,128,0.4); color: #4ade80; }
+
+      /* Color values row */
+      #ep-values {
+        display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+      }
+      .ep-value-chip {
+        display: flex; flex-direction: column; gap: 3px;
+        background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 8px; padding: 8px 11px; cursor: pointer;
+        transition: all 0.2s; min-width: 80px;
+      }
+      .ep-value-chip:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.22); }
+      .ep-chip-label { font-size: 0.48rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.3); }
+      .ep-chip-val { font-size: 0.62rem; font-family: monospace; color: rgba(255,255,255,0.8); }
+      .ep-chip-swatch {
+        width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2);
+        flex-shrink: 0; margin-bottom: 4px;
+      }
+
+      /* Semantic colors row */
+      #ep-semantic {
+        display: flex; gap: 6px; margin-top: 12px;
+      }
+      .ep-sem-chip {
+        flex: 1; padding: 7px 8px; border-radius: 8px; text-align: center;
+        cursor: pointer; transition: transform 0.15s;
+      }
+      .ep-sem-chip:hover { transform: scale(1.04); }
+      .ep-sem-name { font-size: 0.5rem; letter-spacing: 0.1em; color: rgba(255,255,255,0.5); }
+      .ep-sem-hex  { font-size: 0.6rem; font-family: monospace; color: rgba(255,255,255,0.85); }
+
+      /* ── Export button style ────────────────────────────────────────── */
+      .btn.export {
+        border-color: rgba(100,200,255,0.35); color: rgba(140,210,255,0.9);
+      }
+      .btn.export:hover { background: rgba(100,200,255,0.1); border-color: rgba(100,200,255,0.6); }
+
+      /* Buttons ─────────────────────────────────────────────────────── */
       #controls { display: flex; gap: 8px; align-items: center; }
       .btn {
         padding: 9px 20px; border-radius: 50px;
@@ -538,6 +708,12 @@
         /* ── Toast position ──────────────────────────────────────────────── */
         #save-toast { top: auto; bottom: 100px; }
 
+        /* ── Export panel mobile ─────────────────────────────────────────── */
+        #ep-brand-strip .ep-brand-swatch { height: 38px; }
+        #ep-values { gap: 6px; }
+        .ep-value-chip { min-width: 70px; padding: 6px 9px; }
+        #contrast-badge { display: none; } /* shown in export panel on mobile */
+
         /* Larger touch-friendly hue dots */
         .hue-dot { width: 27px; height: 27px; }
         #hue-strip { gap: 4px; }
@@ -802,6 +978,7 @@
               <span class="swatch-hint">✎</span>
             </div>
             <div class="color-label">A <span class="edit-hint">· tap</span></div>
+            <div class="slot-hex" id="hex-a" title="Click to copy">#ff2200</div>
           </div>
           <span class="sep">+</span>
           <div class="color-slot">
@@ -809,12 +986,18 @@
               <span class="swatch-hint">✎</span>
             </div>
             <div class="color-label">B <span class="edit-hint">· tap</span></div>
+            <div class="slot-hex" id="hex-b" title="Click to copy">#0033ff</div>
           </div>
           <span class="sep">→</span>
           <div id="result-area">
             <div id="result-swatch" style="background:#7f10ff;"></div>
-            <div id="hex-display">#7f10ff</div>
+            <div id="hex-display" title="Click to copy">#7f10ff</div>
             <div id="mix-label">Mix</div>
+          </div>
+          <div id="contrast-badge" title="WCAG contrast ratio (A vs B)">
+            <div id="contrast-label">Contrast</div>
+            <div id="contrast-ratio-val">—</div>
+            <div id="contrast-level-badge">—</div>
           </div>
         </div>
         <div id="mix-critique"></div>
@@ -826,10 +1009,40 @@
           <button class="btn primary" id="btn-mix">Apply Mix</button>
           <button class="btn" id="btn-randomize">Random</button>
           <button class="btn" id="btn-create-palette">Create Palette</button>
+          <button class="btn export" id="btn-export">↑ Export</button>
           <button class="btn save" id="btn-save">Save</button>
         </div>
 
       </div><!-- /bottom-panel -->
+      <!-- Export Panel -->
+      <div id="export-panel">
+        <div id="ep-header">
+          <span class="ep-title">Export Colors</span>
+          <button id="ep-close">✕</button>
+        </div>
+        <div id="ep-tabs">
+          <button class="ep-tab active" data-tab="css">CSS Vars</button>
+          <button class="ep-tab" data-tab="tailwind">Tailwind</button>
+          <button class="ep-tab" data-tab="scss">SCSS</button>
+          <button class="ep-tab" data-tab="json">JSON</button>
+        </div>
+        <div id="ep-body">
+          <div id="ep-source">
+            <span style="font-size:0.55rem;color:rgba(255,255,255,0.3);letter-spacing:0.1em;text-transform:uppercase;align-self:center;">From:</span>
+            <button class="ep-src active" data-src="mix">Mix Colors</button>
+            <button class="ep-src" data-src="brand">Brand Scale</button>
+            <button class="ep-src" data-src="palette">Saved Palette</button>
+          </div>
+          <div id="ep-brand-strip"></div>
+          <div id="ep-semantic"></div>
+          <div id="ep-code-wrap">
+            <pre id="ep-code"></pre>
+            <button id="ep-copy">Copy</button>
+          </div>
+          <div id="ep-values"></div>
+        </div>
+      </div>
+
     </div><!-- /ui -->
     <script type="module" src="/src/main.js"></script>
   </body>

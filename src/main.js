@@ -7,6 +7,12 @@ import { colorPsychology, getSchemeHues, SCHEMES } from './colorUtils.js';
 import { createColorWheel } from './colorWheel.js';
 import { createEnvironment } from './environment.js';
 import { createStarPrism, MOODS, CINEMATIC, generateSuggestions } from './paletteMode.js';
+import {
+  contrastRatio, wcagLevel,
+  generateBrandScale, generateBrandSystem,
+  toHex, toRGB, toHSL, toCMYK,
+  exportCSS, exportTailwind, exportSCSS, exportJSON,
+} from './colorExport.js';
 
 // ── App state ──────────────────────────────────────────────────────────────
 const state = {
@@ -161,8 +167,23 @@ const psychName    = document.getElementById('psych-name');
 const psychCat     = document.getElementById('psych-category');
 const psychTraits  = document.getElementById('psych-traits');
 const critiqueEl   = document.getElementById('mix-critique');
+const hexA         = document.getElementById('hex-a');
+const hexB         = document.getElementById('hex-b');
+const contrastValEl  = document.getElementById('contrast-ratio-val');
+const contrastBadgeEl = document.getElementById('contrast-level-badge');
 
 function hex(color) { return '#' + color.getHexString(); }
+
+// ── Clipboard copy util ────────────────────────────────────────────────────
+function copyText(text) {
+  navigator.clipboard?.writeText(text).catch(() => {
+    const el = document.createElement('textarea');
+    el.value = text; el.style.position = 'fixed'; el.style.opacity = '0';
+    document.body.appendChild(el); el.select(); document.execCommand('copy');
+    document.body.removeChild(el);
+  });
+  showToast(`Copied ${text}`);
+}
 
 // ── Mix panel update ───────────────────────────────────────────────────────
 function updateMixPanel() {
@@ -171,12 +192,26 @@ function updateMixPanel() {
   swatchA.style.boxShadow  = `0 0 16px ${hex(ca)}80`;
   swatchB.style.background = hex(cb);
   swatchB.style.boxShadow  = `0 0 16px ${hex(cb)}80`;
+  if (hexA) hexA.textContent = hex(ca);
+  if (hexB) hexB.textContent = hex(cb);
 
   const mix = ca.clone().lerp(cb, 0.5);
   state.mixedColor.copy(mix);
   resultSwatch.style.background = hex(mix);
   resultSwatch.style.boxShadow  = `0 0 20px ${hex(mix)}90`;
   hexDisplay.textContent = hex(mix);
+
+  // WCAG contrast
+  const ratio = contrastRatio(ca, cb);
+  const lvl   = wcagLevel(ratio);
+  if (contrastValEl) contrastValEl.textContent = ratio.toFixed(1) + ':1';
+  if (contrastBadgeEl) {
+    contrastBadgeEl.textContent = lvl.label;
+    contrastBadgeEl.style.background = lvl.color + '28';
+    contrastBadgeEl.style.color      = lvl.color;
+    contrastBadgeEl.style.borderColor = lvl.color + '55';
+    contrastBadgeEl.style.border     = `1px solid ${lvl.color}55`;
+  }
 
   // Live-update the center orb to show the blend
   if (mixSphere) {
@@ -489,6 +524,11 @@ function applyPickedColor(hexVal, slot) {
 pickerA.addEventListener('input', e => { state.activeSlot = 0; applyPickedColor(e.target.value, 0); });
 pickerB.addEventListener('input', e => { state.activeSlot = 1; applyPickedColor(e.target.value, 1); });
 
+// Copy hex on click for hex displays
+if (hexA) hexA.addEventListener('click', e => { e.stopPropagation(); copyText(hex(state.slotColors[0])); });
+if (hexB) hexB.addEventListener('click', e => { e.stopPropagation(); copyText(hex(state.slotColors[1])); });
+hexDisplay.addEventListener('click', () => copyText(hex(state.mixedColor)));
+
 // ── Scheme buttons ─────────────────────────────────────────────────────────
 schemeBtns.forEach(btn => {
   btn.addEventListener('click', () => {
@@ -745,6 +785,164 @@ schemeBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     if (schemeActiveDisplay) schemeActiveDisplay.textContent = btn.textContent.trim();
   });
+});
+
+// ── Export panel ──────────────────────────────────────────────────────────
+const exportPanel = document.getElementById('export-panel');
+const epClose     = document.getElementById('ep-close');
+const epCopy      = document.getElementById('ep-copy');
+const epCode      = document.getElementById('ep-code');
+const epBrandStrip = document.getElementById('ep-brand-strip');
+const epSemantic  = document.getElementById('ep-semantic');
+const epValues    = document.getElementById('ep-values');
+const epTabs      = document.querySelectorAll('.ep-tab');
+const epSrcs      = document.querySelectorAll('.ep-src');
+
+let epActiveTab = 'css';
+let epActiveSrc = 'mix';
+let currentBrandScale = null;
+let currentBrandSystem = null;
+
+function getExportEntries() {
+  if (epActiveSrc === 'brand' && currentBrandSystem) {
+    return currentBrandSystem.scale;
+  }
+  if (epActiveSrc === 'palette') {
+    return savedPalettes.slice(0, 1).flatMap((p, pi) => [
+      { name: `palette-a`,   varName: `--palette-a`,   hex: p.color_a },
+      { name: `palette-b`,   varName: `--palette-b`,   hex: p.color_b },
+      { name: `palette-mix`, varName: `--palette-mix`, hex: p.color_mix },
+    ]);
+  }
+  // Default: mix colors
+  return [
+    { name: 'color-a',   varName: '--color-a',   hex: hex(state.slotColors[0]) },
+    { name: 'color-b',   varName: '--color-b',   hex: hex(state.slotColors[1]) },
+    { name: 'color-mix', varName: '--color-mix', hex: hex(state.mixedColor)    },
+  ];
+}
+
+function renderExportCode() {
+  const entries = getExportEntries();
+  let code = '';
+  if (epActiveTab === 'css')      code = exportCSS(entries);
+  else if (epActiveTab === 'tailwind') code = exportTailwind(entries, epActiveSrc === 'brand' ? 'primary' : 'brand');
+  else if (epActiveTab === 'scss') code = exportSCSS(entries);
+  else if (epActiveTab === 'json') code = exportJSON(entries);
+  if (epCode) epCode.textContent = code;
+}
+
+function renderBrandStrip(system) {
+  if (!epBrandStrip) return;
+  epBrandStrip.innerHTML = '';
+  const visible = epActiveSrc === 'brand' && system;
+  epBrandStrip.style.display = visible ? 'flex' : 'none';
+  if (!visible) return;
+  system.scale.forEach(({ name, hex: h, color }) => {
+    const div = document.createElement('div');
+    div.className = 'ep-brand-swatch';
+    div.style.background = h;
+    div.title = `${name}: ${h}`;
+    const lbl = document.createElement('div');
+    lbl.className = 'ep-brand-label';
+    lbl.textContent = name;
+    div.appendChild(lbl);
+    div.addEventListener('click', () => copyText(h));
+    epBrandStrip.appendChild(div);
+  });
+}
+
+function renderSemanticRow(system) {
+  if (!epSemantic) return;
+  epSemantic.innerHTML = '';
+  const visible = epActiveSrc === 'brand' && system;
+  epSemantic.style.display = visible ? 'flex' : 'none';
+  if (!visible) return;
+  system.semantic.forEach(({ name, hex: h }) => {
+    const chip = document.createElement('div');
+    chip.className = 'ep-sem-chip';
+    chip.style.background = h + '22';
+    chip.style.border = `1px solid ${h}44`;
+    chip.title = `${name}: ${h}`;
+    chip.innerHTML = `<div class="ep-sem-name">${name}</div><div class="ep-sem-hex">${h}</div>`;
+    chip.addEventListener('click', () => copyText(h));
+    epSemantic.appendChild(chip);
+  });
+}
+
+function renderValueChips() {
+  if (!epValues) return;
+  epValues.innerHTML = '';
+  const colors = epActiveSrc === 'brand' && currentBrandSystem
+    ? [
+        { label: 'Primary', c: state.slotColors[0] },
+        { label: 'Accent',  c: new THREE.Color(currentBrandSystem.scale.find(s => s.name === '500')?.hex || '#fff') },
+      ]
+    : [
+        { label: 'A',   c: state.slotColors[0] },
+        { label: 'B',   c: state.slotColors[1] },
+        { label: 'Mix', c: state.mixedColor    },
+      ];
+  colors.forEach(({ label, c }) => {
+    const formats = [
+      { fmt: 'HEX', val: toHex(c) },
+      { fmt: 'RGB', val: toRGB(c) },
+      { fmt: 'HSL', val: toHSL(c) },
+      { fmt: 'CMYK',val: toCMYK(c) },
+    ];
+    formats.forEach(({ fmt, val }) => {
+      const chip = document.createElement('div');
+      chip.className = 'ep-value-chip';
+      chip.title = `Copy ${fmt}`;
+      chip.innerHTML = `<div class="ep-chip-swatch" style="background:${toHex(c)};"></div><div class="ep-chip-label">${label} · ${fmt}</div><div class="ep-chip-val">${val}</div>`;
+      chip.addEventListener('click', () => copyText(val));
+      epValues.appendChild(chip);
+    });
+  });
+}
+
+function openExportPanel() {
+  currentBrandSystem = generateBrandSystem(state.slotColors[0]);
+  renderBrandStrip(epActiveSrc === 'brand' ? currentBrandSystem : null);
+  renderSemanticRow(epActiveSrc === 'brand' ? currentBrandSystem : null);
+  renderValueChips();
+  renderExportCode();
+  exportPanel.classList.add('open');
+}
+
+epTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    epActiveTab = tab.dataset.tab;
+    epTabs.forEach(t => t.classList.toggle('active', t === tab));
+    renderExportCode();
+  });
+});
+
+epSrcs.forEach(src => {
+  src.addEventListener('click', () => {
+    epActiveSrc = src.dataset.src;
+    epSrcs.forEach(s => s.classList.toggle('active', s === src));
+    renderBrandStrip(epActiveSrc === 'brand' ? currentBrandSystem : null);
+    renderSemanticRow(epActiveSrc === 'brand' ? currentBrandSystem : null);
+    renderValueChips();
+    renderExportCode();
+  });
+});
+
+document.getElementById('btn-export').addEventListener('click', openExportPanel);
+epClose.addEventListener('click', () => exportPanel.classList.remove('open'));
+
+epCopy.addEventListener('click', () => {
+  const text = epCode.textContent;
+  navigator.clipboard?.writeText(text).catch(() => {
+    const el = document.createElement('textarea');
+    el.value = text; el.style.position = 'fixed'; el.style.opacity = '0';
+    document.body.appendChild(el); el.select(); document.execCommand('copy');
+    document.body.removeChild(el);
+  });
+  epCopy.textContent = 'Copied!';
+  epCopy.classList.add('copied');
+  setTimeout(() => { epCopy.textContent = 'Copy'; epCopy.classList.remove('copied'); }, 2000);
 });
 
 // ── Action buttons ─────────────────────────────────────────────────────────
