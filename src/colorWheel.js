@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { SEGMENT_DATA } from './colorUtils.js';
 
-const SEGMENTS = 24;
+const SEGMENTS = 48;
 const INNER_R = 1.6;
 const OUTER_R = 3.0;
 
@@ -61,8 +61,8 @@ export function createColorWheel(scene) {
 
   // ── Primary & secondary category markers ──────────────────────────────
   // Primary: gold spheres on outer edge; Secondary: silver spheres
-  const primaryIndices = [0, 4, 14];    // Red, Yellow, Blue
-  const secondaryIndices = [2, 8, 18];  // Orange, Green, Purple
+  const primaryIndices = [0, 8, 28];    // Red, Yellow, Blue
+  const secondaryIndices = [4, 16, 36]; // Orange, Green, Purple
 
   primaryIndices.forEach(i => {
     addMarker(wheelGroup, i, 0.13, 0xffd700, 0xffd700, 0.9);

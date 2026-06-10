@@ -78,7 +78,7 @@ const { group: starGroup, armMaterials: starArmMats } = createStarPrism(1.25, 0.
 wheelGroup.add(starGroup);
 
 // ── Interaction state indicators ──────────────────────────────────────────
-const WRINGS = 24, WOUTER = 3.0;
+const WRINGS = 48, WOUTER = 3.0;
 const ARC_SPAN = (Math.PI * 2) / WRINGS;
 
 // Thin arc that follows the hovered segment
@@ -470,7 +470,7 @@ function renderSchemePalette(schemeHues) {
 
 // ── Scheme wheel highlighting ──────────────────────────────────────────────
 function applySchemeToWheel(schemeHues) {
-  const tolerance = 0.03;
+  const tolerance = 0.015; // tighter for 48-segment wheel
   segments.forEach(seg => {
     const h = seg.userData.hue;
     const inScheme = schemeHues.some(sh => {
@@ -554,18 +554,37 @@ schemeBtns.forEach(btn => {
 let isDragging = false;
 let mouseDownPos = { x: 0, y: 0 };
 
+// Wheel-spin drag state — drag on a segment to spin the wheel; environment stays fixed
+const wheelDrag = { active: false, startX: 0, startRotY: 0, lastX: 0, velocity: 0 };
+
 renderer.domElement.addEventListener('mousedown', e => {
   mouseDownPos = { x: e.clientX, y: e.clientY };
   isDragging = false;
+  const seg = intersectSegment(e);
+  if (seg && seg.userData.isSegment) {
+    wheelDrag.active   = true;
+    wheelDrag.startX   = e.clientX;
+    wheelDrag.lastX    = e.clientX;
+    wheelDrag.startRotY = wheelGroup.rotation.y;
+    wheelDrag.velocity = 0;
+    controls.enabled   = false; // freeze camera during wheel spin
+  }
 });
 
 renderer.domElement.addEventListener('mousemove', e => {
+  if (wheelDrag.active) {
+    const dx = e.clientX - wheelDrag.startX;
+    wheelGroup.rotation.y = wheelDrag.startRotY + dx * 0.009;
+    wheelDrag.velocity = (e.clientX - wheelDrag.lastX) * 0.009;
+    wheelDrag.lastX = e.clientX;
+    isDragging = Math.abs(dx) > 3;
+    return; // skip hover update while spinning
+  }
+
   const dx = e.clientX - mouseDownPos.x, dy = e.clientY - mouseDownPos.y;
   if (Math.sqrt(dx * dx + dy * dy) > 4) isDragging = true;
 
-  // Reset hover state
   segments.forEach(s => { s.userData.hovered = false; });
-
   const seg = intersectSegment(e);
   if (seg && seg.userData.isSegment) {
     seg.userData.hovered = true;
@@ -579,7 +598,17 @@ renderer.domElement.addEventListener('mousemove', e => {
   }
 });
 
+renderer.domElement.addEventListener('mouseup', () => {
+  if (wheelDrag.active) {
+    wheelDrag.active   = false;
+    controls.enabled   = true;
+    // Impart a gentle residual spin matching release velocity
+    state._wheelSpinVelocity = wheelDrag.velocity * 0.5;
+  }
+});
+
 renderer.domElement.addEventListener('mouseleave', () => {
+  if (wheelDrag.active) { wheelDrag.active = false; controls.enabled = true; }
   hoverArc.userData.show = false;
   hidePsychology();
 });
@@ -650,18 +679,48 @@ renderer.domElement.addEventListener('click', e => {
   showPsychology(hue, color);
 });
 
-// Touch support — only fire click on genuine taps (not orbit drags)
+// Touch support — wheel spin on drag, color pick on tap
 let touchStartPos = { x: 0, y: 0 };
+let touchWheelDrag = { active: false, startX: 0, startRotY: 0, lastX: 0, velocity: 0 };
+
 renderer.domElement.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) return;
   const t = e.touches[0];
   touchStartPos = { x: t.clientX, y: t.clientY };
+  // Check if touch is on a wheel segment
+  const fakeEvt = { clientX: t.clientX, clientY: t.clientY };
+  const seg = intersectSegment(fakeEvt);
+  if (seg && seg.userData.isSegment) {
+    touchWheelDrag.active    = true;
+    touchWheelDrag.startX    = t.clientX;
+    touchWheelDrag.lastX     = t.clientX;
+    touchWheelDrag.startRotY = wheelGroup.rotation.y;
+    touchWheelDrag.velocity  = 0;
+    controls.enabled = false;
+  }
 }, { passive: true });
+
+renderer.domElement.addEventListener('touchmove', e => {
+  if (!touchWheelDrag.active || e.touches.length !== 1) return;
+  const t = e.touches[0];
+  const dx = t.clientX - touchWheelDrag.startX;
+  wheelGroup.rotation.y = touchWheelDrag.startRotY + dx * 0.009;
+  touchWheelDrag.velocity = (t.clientX - touchWheelDrag.lastX) * 0.009;
+  touchWheelDrag.lastX = t.clientX;
+  isDragging = Math.abs(dx) > 8;
+}, { passive: true });
+
 renderer.domElement.addEventListener('touchend', e => {
+  if (touchWheelDrag.active) {
+    touchWheelDrag.active = false;
+    controls.enabled = true;
+    state._wheelSpinVelocity = touchWheelDrag.velocity * 0.5;
+  }
   if (e.changedTouches.length !== 1) return;
   const t = e.changedTouches[0];
   const dx = t.clientX - touchStartPos.x;
   const dy = t.clientY - touchStartPos.y;
-  if (Math.sqrt(dx * dx + dy * dy) > 12) return; // was a drag, not a tap
+  if (Math.sqrt(dx * dx + dy * dy) > 12) return; // orbit drag — not a tap
   e.preventDefault();
   isDragging = false;
   renderer.domElement.dispatchEvent(new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY, bubbles: true }));
@@ -1035,7 +1094,13 @@ function animate() {
   const t = clock.getElapsedTime();
 
   controls.update();
-  wheelGroup.rotation.y += palette.active ? 0.0002 : 0.0007;
+  // Spin velocity (from drag release) decays to gentle auto-rotation
+  if (!state._wheelSpinVelocity) state._wheelSpinVelocity = 0;
+  state._wheelSpinVelocity *= 0.96; // friction
+  const baseSpeed = palette.active ? 0.0002 : 0.0004;
+  wheelGroup.rotation.y += !wheelDrag.active && !touchWheelDrag.active
+    ? baseSpeed + state._wheelSpinVelocity
+    : 0;
   env.update(t);
 
   // ── Camera micro-drift on Apply Mix ───────────────────────────────────

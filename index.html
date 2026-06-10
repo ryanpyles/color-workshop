@@ -107,23 +107,32 @@
         pointer-events: all;
       }
 
-      /* ── Scheme selector ────────────────────────────────────────────── */
+      /* ── Scheme selector — top floating pill on desktop ─────────────── */
       #scheme-panel {
-        display: flex; flex-direction: column; align-items: center; gap: 8px;
-        background: rgba(2,0,8,0.65); backdrop-filter: blur(20px);
-        border: 1px solid rgba(255,255,255,0.10); border-radius: 16px;
-        padding: 12px 18px;
+        position: absolute; top: 68px; left: 50%; transform: translateX(-50%);
+        display: flex; flex-direction: row; align-items: center; gap: 6px;
+        background: rgba(2,0,8,0.60); backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.09); border-radius: 50px;
+        padding: 6px 10px;
+        pointer-events: all; z-index: 10;
+        max-width: calc(100vw - 200px); /* leave room for slot buttons */
       }
 
-      #scheme-header {
-        font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase;
-        color: rgba(255,255,255,0.42); align-self: flex-start; margin-bottom: 2px;
-        font-weight: 500;
+      #scheme-header { display: none; } /* label hidden in pill mode */
+
+      #scheme-collapsible {
+        display: flex !important;
+        flex-direction: row; align-items: center; gap: 4px;
+        max-height: none !important; opacity: 1 !important;
+        overflow: visible; pointer-events: all !important;
       }
+      #scheme-desc   { display: none; }
+      #scheme-palette { display: none; }
 
       #scheme-buttons {
-        display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;
-        max-width: 560px;
+        display: flex; gap: 4px; flex-wrap: nowrap;
+        overflow-x: auto; scrollbar-width: none;
+        max-width: 580px;
       }
       .scheme-btn {
         padding: 5px 11px; border-radius: 50px;
@@ -659,17 +668,18 @@
           align-items: stretch;
         }
 
-        /* ── Scheme panel ─────────────────────────────────────────────────── */
-        #scheme-panel { padding: 8px 10px; gap: 5px; align-items: stretch; }
-        #scheme-desc   { display: none; }
-        #scheme-palette { display: none; }
+        /* ── Scheme panel — compact scrollable strip at top on mobile ──────── */
+        #scheme-panel {
+          top: 50px; /* below compact title */
+          max-width: calc(100vw - 120px); /* leave room for slot-indicator */
+          padding: 5px 8px;
+        }
+        #scheme-collapsible { gap: 3px; }
         #scheme-buttons {
-          flex-wrap: nowrap; overflow-x: auto;
-          scrollbar-width: none; gap: 4px;
-          justify-content: flex-start;
+          flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 3px;
         }
         #scheme-buttons::-webkit-scrollbar { display: none; }
-        .scheme-btn { padding: 4px 9px; font-size: 0.58rem; flex-shrink: 0; }
+        .scheme-btn { padding: 3px 8px; font-size: 0.56rem; flex-shrink: 0; }
 
         /* ── Mix panel ────────────────────────────────────────────────────── */
         #mix-preview { padding: 10px 14px; gap: 8px; justify-content: center; }
@@ -943,18 +953,16 @@
       <input type="color" id="color-picker-a" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;tabindex=-1">
       <input type="color" id="color-picker-b" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;tabindex=-1">
 
-      <!-- Bottom: scheme + mix + buttons -->
-      <div id="bottom-panel">
-
-        <div id="scheme-panel">
-          <div id="scheme-header">
-            <span id="scheme-header-text">Harmony</span>
-            <button id="scheme-toggle-btn" aria-expanded="false">
-              <span id="scheme-active-display">Free</span>
-              <span class="chevron">›</span>
-            </button>
-          </div>
-          <div id="scheme-collapsible">
+      <!-- Harmony scheme — top strip on desktop, inside bottom panel on mobile -->
+      <div id="scheme-panel">
+        <div id="scheme-header">
+          <span id="scheme-header-text">Harmony</span>
+          <button id="scheme-toggle-btn" aria-expanded="false">
+            <span id="scheme-active-display">Free</span>
+            <span class="chevron">›</span>
+          </button>
+        </div>
+        <div id="scheme-collapsible">
           <div id="scheme-buttons">
             <button class="scheme-btn active" data-scheme="none">Free</button>
             <button class="scheme-btn" data-scheme="mono">Mono</button>
@@ -967,10 +975,13 @@
             <button class="scheme-btn" data-scheme="square">Square</button>
             <button class="scheme-btn" data-scheme="double">Dbl Split</button>
           </div>
-          <div id="scheme-desc">Explore freely — no harmony scheme applied.</div>
+          <div id="scheme-desc"></div>
           <div id="scheme-palette"></div>
-          </div><!-- /scheme-collapsible -->
-        </div>
+        </div><!-- /scheme-collapsible -->
+      </div>
+
+      <!-- Bottom: mix + hue strip + buttons (no scheme panel now) -->
+      <div id="bottom-panel">
 
         <div id="mix-preview">
           <div class="color-slot">
